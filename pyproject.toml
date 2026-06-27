@@ -1,0 +1,80 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "lime-mcp-server-sdk"
+version = "0.1.0"
+description = "JWT verification for LIME MCP resource servers"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [{ name = "Mawyxx" }]
+keywords = ["lime", "mcp", "jwt", "oauth", "resource-server"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Typing :: Typed",
+]
+dependencies = [
+    "PyJWT>=2.8,<3",
+    "cryptography>=42.0,<45",
+    "httpx>=0.27,<0.28",
+]
+
+[project.optional-dependencies]
+mcp = ["mcp>=1.12,<2"]
+dev = [
+    "pytest>=8.0,<9.0",
+    "pytest-cov>=5.0,<6.0",
+    "ruff>=0.6,<1.0",
+    "mypy>=1.11,<2.0",
+    "respx>=0.21,<0.22",
+]
+
+[project.urls]
+Homepage = "https://github.com/Mawyxx/lime-mcp-server-sdk"
+Repository = "https://github.com/Mawyxx/lime-mcp-server-sdk"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/lime_mcp_server"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.12"
+mypy_path = "src"
+packages = ["lime_mcp_server"]
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra"
+markers = [
+    "integration: live LIME network tests (LIME_MCP_SERVER_INTEGRATION=1)",
+]
+
+[tool.coverage.run]
+branch = false
+source = ["lime_mcp_server"]
+
+[tool.coverage.report]
+fail_under = 100
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+]
