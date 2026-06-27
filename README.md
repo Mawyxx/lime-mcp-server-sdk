@@ -59,6 +59,19 @@ Live integration (optional):
 LIME_MCP_SERVER_INTEGRATION=1 LIME_AGENT_TOKEN=at_... pytest tests/integration/ -v
 ```
 
+## Publish (standalone repo)
+
+From monorepo workspace (after local QA):
+
+```bash
+cd sdk/lime-mcp-server-sdk
+git remote add origin git@github.com:Mawyxx/lime-mcp-server-sdk.git   # once
+git push -u origin main
+git push origin v0.1.0
+```
+
+GitHub Actions on tag `v*` publishes to PyPI (`environment: pypi` with trusted publishing).
+
 ## Changelog
 
 ### 0.1.0
