@@ -8,7 +8,6 @@ import respx
 from lime_mcp_server._cache import JwksCache, JwksSnapshot
 from lime_mcp_server._config import LimeConfig
 from lime_mcp_server._envelope import JWKS_PATH, METADATA_PATH
-from lime_mcp_server._fastmcp import LimeMcpTokenVerifier, default_lime_config
 from lime_mcp_server._types import TokenValidationResult
 from lime_mcp_server._verifier import TokenVerifier
 from tests.helpers import sign_mcp_token
@@ -258,21 +257,3 @@ def test_token_verifier_invalid_issuer(rsa_keypair: tuple) -> None:
 def test_token_validation_result_empty_sub_on_valid() -> None:
     result = TokenValidationResult(is_valid=True, claims={"sub": "  "})
     assert result.agent_id is None
-
-
-def test_default_lime_config_helper() -> None:
-    assert default_lime_config().base_url == "https://lime.pics"
-
-
-def test_fastmcp_verify_token_thread_failure(monkeypatch: pytest.MonkeyPatch) -> None:
-    verifier = TokenVerifier(base_url="https://lime.pics")
-
-    def boom(_token: str):
-        raise RuntimeError("boom")
-
-    monkeypatch.setattr(verifier, "verify", boom)
-    adapter = LimeMcpTokenVerifier(verifier=verifier)
-    import asyncio
-
-    assert asyncio.run(adapter.verify_token("token")) is None
-    verifier.close()

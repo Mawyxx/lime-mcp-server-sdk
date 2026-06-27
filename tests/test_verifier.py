@@ -112,3 +112,10 @@ def test_token_verifier_network_error_no_cache() -> None:
 
 def test_token_verifier_get_kid_invalid() -> None:
     assert TokenVerifier._get_kid("bad") is None
+
+
+def test_token_verifier_config_property() -> None:
+    verifier = TokenVerifier(base_url="https://lime.pics", audience="mcp")
+    assert verifier.config.base_url == "https://lime.pics"
+    assert verifier.config.audience == "mcp"
+    verifier.close()

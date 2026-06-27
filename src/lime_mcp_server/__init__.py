@@ -2,16 +2,18 @@
 
 from __future__ import annotations
 
+from lime_mcp_server._cache import JwksCache
 from lime_mcp_server._config import LimeConfig
 from lime_mcp_server._envelope import FORBIDDEN_MCP_CLAIMS, unwrap_lime_data
 from lime_mcp_server._jwt import verify_mcp_access_token
 from lime_mcp_server._types import TokenValidationResult
 from lime_mcp_server._verifier import TokenVerifier
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "FORBIDDEN_MCP_CLAIMS",
+    "JwksCache",
     "LimeConfig",
     "TokenValidationResult",
     "TokenVerifier",

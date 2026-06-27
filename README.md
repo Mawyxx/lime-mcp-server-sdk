@@ -6,8 +6,6 @@ Install:
 
 ```bash
 pip install lime-mcp-server-sdk
-# FastMCP adapter:
-pip install "lime-mcp-server-sdk[mcp]"
 ```
 
 ## Quick start
@@ -33,21 +31,13 @@ MCP OAuth JWT identity is claim **`sub`** (UUID). There is no separate `agent_id
 | `LIME_JWT_VERIFY_LEEWAY_SECONDS` | `120` | Clock skew leeway |
 | `LIME_JWKS_MIN_REFRESH_SECONDS` | `60` | Min interval between forced JWKS refresh |
 
-## FastMCP
-
-```python
-from lime_mcp_server._fastmcp import LimeMcpTokenVerifier
-
-mcp = FastMCP(..., token_verifier=LimeMcpTokenVerifier())
-```
-
 ## Development
 
 Monorepo workspace: `sdk/lime-mcp-server-sdk/` (gitignored). Standalone repo: [github.com/Mawyxx/lime-mcp-server-sdk](https://github.com/Mawyxx/lime-mcp-server-sdk).
 
 ```bash
 cd sdk/lime-mcp-server-sdk
-pip install -e ".[dev,mcp]"
+pip install -e ".[dev]"
 ruff check src tests
 mypy src/lime_mcp_server
 pytest --cov=lime_mcp_server --cov-fail-under=100
@@ -65,15 +55,19 @@ From monorepo workspace (after local QA):
 
 ```bash
 cd sdk/lime-mcp-server-sdk
-git remote add origin git@github.com:Mawyxx/lime-mcp-server-sdk.git   # once
 git push -u origin main
-git push origin v0.1.0
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
 GitHub Actions on tag `v*` publishes to PyPI (`environment: pypi` with trusted publishing).
 
 ## Changelog
 
+### 0.2.0
+
+- Remove framework adapters (`LimeMcpTokenVerifier`, `[mcp]` extra). Core-only wheel.
+
 ### 0.1.0
 
-- Initial release: `TokenVerifier`, `TokenValidationResult`, JWKS cache, optional FastMCP adapter.
+- Initial release: `TokenVerifier`, `TokenValidationResult`, JWKS cache.

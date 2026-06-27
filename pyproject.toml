@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "lime-mcp-server-sdk"
-version = "0.1.0"
+version = "0.2.0"
 description = "JWT verification for LIME MCP resource servers"
 readme = "README.md"
 license = "MIT"
@@ -29,7 +29,6 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-mcp = ["mcp>=1.12,<2"]
 dev = [
     "pytest>=8.0,<9.0",
     "pytest-cov>=5.0,<6.0",
