@@ -60,18 +60,10 @@ git tag v0.2.0
 git push origin v0.2.0
 ```
 
-GitHub Actions on tag `v*` publishes to PyPI. One-time setup:
-
-1. Create project `lime-mcp-server-sdk` on [pypi.org](https://pypi.org/manage/projects/)
-2. PyPI → **Publishing** → **Add a new pending publisher**:
-   - Owner: `Mawyxx`, repo: `lime-mcp-server-sdk`, workflow: `publish.yml`, environment: `pypi`
-3. GitHub repo → **Settings → Environments** → create **`pypi`**
-4. Push tag: `git push origin v0.2.0` (or re-tag and force-push)
-
-Until PyPI is live, install from GitHub:
+GitHub Actions on tag `v*` publishes to PyPI via trusted publishing (`publish.yml`, environment `pypi`).
 
 ```bash
-pip install "lime-mcp-server-sdk @ git+https://github.com/Mawyxx/lime-mcp-server-sdk.git@v0.2.0"
+pip install lime-mcp-server-sdk
 ```
 
 ## Changelog
