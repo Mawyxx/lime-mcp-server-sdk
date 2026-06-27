@@ -5,6 +5,7 @@ from typing import Any, cast
 import jwt
 from jwt.algorithms import RSAAlgorithm
 
+from lime_mcp_server._claims import McpAccessTokenClaims
 from lime_mcp_server._envelope import FORBIDDEN_MCP_CLAIMS
 
 
@@ -16,7 +17,7 @@ def verify_mcp_access_token(
     jwks_keys: list[dict[str, Any]],
     leeway_seconds: int = 120,
     allowed_algorithms: tuple[str, ...] = ("RS256",),
-) -> dict[str, Any]:
+) -> McpAccessTokenClaims:
     """Verify RS256 MCP access token against pre-fetched JWKS keys."""
     header = jwt.get_unverified_header(token)
     kid = header.get("kid")
@@ -38,4 +39,4 @@ def verify_mcp_access_token(
     sub = claims.get("sub")
     if not isinstance(sub, str) or not sub.strip():
         raise jwt.InvalidTokenError("missing sub claim")
-    return claims
+    return cast(McpAccessTokenClaims, claims)

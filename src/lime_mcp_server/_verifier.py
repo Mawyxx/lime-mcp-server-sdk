@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 import jwt
@@ -48,6 +49,21 @@ class TokenVerifier:
     @property
     def config(self) -> LimeConfig:
         return self._config
+
+    @property
+    def cache(self) -> JwksCache:
+        return self._cache
+
+    def warmup(self, *, raise_on_failure: bool = False) -> bool:
+        """Prefetch OAuth metadata and JWKS."""
+        if raise_on_failure:
+            self._cache.refresh(force=True)
+            return True
+        return self._cache.warm()
+
+    async def verify_async(self, token: str) -> TokenValidationResult:
+        """Verify a Bearer MCP JWT without blocking the event loop."""
+        return await asyncio.to_thread(self.verify, token)
 
     def verify(self, token: str) -> TokenValidationResult:
         """Verify a Bearer MCP JWT and return a structured result."""

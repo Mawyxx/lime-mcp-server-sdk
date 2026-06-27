@@ -34,6 +34,7 @@ class JwksCache:
         self._lock = threading.Lock()
         self._snapshot: JwksSnapshot | None = None
         self._last_forced_refresh_at: float = 0.0
+        self._fetch_count = 0
         self._owns_client = http_client is None
         self._client = http_client or httpx.Client(
             timeout=config.http_timeout,
@@ -44,16 +45,24 @@ class JwksCache:
             },
         )
 
+    @property
+    def fetch_count(self) -> int:
+        """Number of successful metadata+JWKS network fetches."""
+        with self._lock:
+            return self._fetch_count
+
     def close(self) -> None:
         if self._owns_client:
             self._client.close()
 
-    def warm(self) -> None:
+    def warm(self) -> bool:
         """Prefetch metadata and JWKS (non-fatal on failure)."""
         try:
             self.refresh(force=True)
+            return True
         except Exception:
             logger.warning("JWKS cache warmup failed", exc_info=True)
+            return False
 
     def invalidate(self) -> None:
         with self._lock:
@@ -69,7 +78,8 @@ class JwksCache:
                     if self._snapshot is not None:
                         return
                 self._last_forced_refresh_at = now
-            self._snapshot = self._fetch_snapshot()
+            self._snapshot = self._fetch_snapshot_uncounted()
+            self._fetch_count += 1
 
     def get_jwks(self, kid: str | None) -> tuple[list[dict[str, Any]], str]:
         """Return JWKS keys and issuer; refresh on TTL expiry or kid mismatch."""
@@ -106,7 +116,7 @@ class JwksCache:
     def _is_expired(self, snapshot: JwksSnapshot) -> bool:
         return (time.monotonic() - snapshot.fetched_at) >= self._config.cache_ttl
 
-    def _fetch_snapshot(self) -> JwksSnapshot:
+    def _fetch_snapshot_uncounted(self) -> JwksSnapshot:
         metadata = self._fetch_metadata()
         issuer = str(metadata.get("issuer", "")).strip()
         if not issuer:

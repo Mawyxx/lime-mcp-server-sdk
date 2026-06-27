@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import cast
+
+from lime_mcp_server._claims import McpAccessTokenClaims
 
 
 @dataclass(frozen=True, slots=True)
@@ -9,7 +11,7 @@ class TokenValidationResult:
     """Structured outcome of MCP JWT verification."""
 
     is_valid: bool
-    claims: dict[str, Any] | None = None
+    claims: McpAccessTokenClaims | None = None
     error: str | None = None
 
     @property
@@ -19,4 +21,11 @@ class TokenValidationResult:
             sub = self.claims.get("sub")
             if isinstance(sub, str) and sub.strip():
                 return sub
+        return None
+
+    @property
+    def valid_claims(self) -> McpAccessTokenClaims | None:
+        """Narrowed claims when verification succeeded."""
+        if self.is_valid and self.claims is not None:
+            return cast(McpAccessTokenClaims, self.claims)
         return None

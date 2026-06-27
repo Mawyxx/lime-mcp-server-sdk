@@ -170,3 +170,19 @@ def test_jwks_cache_injected_client(rsa_keypair: tuple) -> None:
     cache.get_jwks("test-kid")
     cache.close()
     client.close()
+
+
+@respx.mock
+def test_jwks_cache_fetch_count(rsa_keypair: tuple) -> None:
+    _, jwk = rsa_keypair
+    base = "https://lime.pics"
+    respx.get(f"{base}{METADATA_PATH}").respond(json=_metadata_body())
+    respx.get(f"{base}{JWKS_PATH}").respond(json=_jwks_body(jwk))
+
+    cache = JwksCache(LimeConfig(base_url=base, cache_ttl=3600))
+    assert cache.fetch_count == 0
+    cache.get_jwks("test-kid")
+    assert cache.fetch_count == 1
+    cache.get_jwks("test-kid")
+    assert cache.fetch_count == 1
+    cache.close()

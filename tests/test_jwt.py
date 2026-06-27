@@ -69,8 +69,9 @@ def test_token_validation_result_agent_id(rsa_keypair: tuple) -> None:
     assert result.agent_id == "uuid-123"
 
 
-def test_token_validation_result_agent_id_invalid() -> None:
+def test_token_validation_result_valid_claims_when_invalid() -> None:
     result = TokenValidationResult(is_valid=False, error="bad")
+    assert result.valid_claims is None
     assert result.agent_id is None
 
 
