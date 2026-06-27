@@ -70,7 +70,10 @@ def test_jwks_cache_jwks_non_object_json() -> None:
 @respx.mock
 def test_jwks_cache_metadata_invalid_json() -> None:
     base = "https://lime.pics"
-    respx.get(f"{base}{METADATA_PATH}").respond(text="not-json", headers={"Content-Type": "text/plain"})
+    respx.get(f"{base}{METADATA_PATH}").respond(
+        text="not-json",
+        headers={"Content-Type": "text/plain"},
+    )
     cache = JwksCache(LimeConfig(base_url=base))
     with pytest.raises(ValueError, match="metadata response must be JSON object"):
         cache.refresh(force=True)
