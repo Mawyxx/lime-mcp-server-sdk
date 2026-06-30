@@ -135,7 +135,7 @@ class JwksCache:
             raise ValueError("metadata response must be JSON object") from exc
         if not isinstance(body, dict):
             raise ValueError("metadata response must be JSON object")
-        return unwrap_lime_data(body)
+        return _parse_oauth_metadata(body)
 
     def _fetch_jwks(self, jwks_uri: str) -> list[dict[str, Any]]:
         base = self._config.base_url
@@ -162,3 +162,16 @@ class JwksCache:
         if not isinstance(keys, list) or not keys:
             raise ValueError("jwks missing keys")
         return keys
+
+
+def _parse_oauth_metadata(body: dict[str, Any]) -> dict[str, Any]:
+    issuer = str(body.get("issuer", "")).strip()
+    if not issuer:
+        raise ValueError("metadata missing issuer")
+    jwks_uri = str(body.get("jwks_uri", "")).strip()
+    if not jwks_uri:
+        raise ValueError("metadata missing jwks_uri")
+    grant_types = body.get("grant_types_supported")
+    if grant_types is not None and not isinstance(grant_types, list):
+        raise ValueError("metadata grant_types_supported must be a list")
+    return body

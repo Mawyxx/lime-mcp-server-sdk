@@ -87,13 +87,18 @@ LIME_MCP_SERVER_INTEGRATION=1 LIME_AGENT_TOKEN=at_... pytest tests/integration/ 
 ```bash
 cd sdk/lime-mcp-server-sdk
 git push -u origin main
-git tag v0.3.0
-git push origin v0.3.0
+git tag v0.4.0
+git push origin v0.4.0
 ```
 
 GitHub Actions on tag `v*` publishes to PyPI via trusted publishing (`publish.yml`, environment `pypi`).
 
 ## Changelog
+
+### 0.4.0
+
+- **Breaking:** OAuth metadata (`GET .../oauth-authorization-server`) is raw RFC 8414 JSON — no LIME `{ ok, data }` envelope.
+- Core JWKS still uses LIME envelope; `unwrap_lime_data()` unchanged for JWKS.
 
 ### 0.3.0
 

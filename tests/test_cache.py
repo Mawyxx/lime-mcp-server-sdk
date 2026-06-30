@@ -13,11 +13,10 @@ from lime_mcp_server._envelope import JWKS_PATH, METADATA_PATH
 
 def _metadata_body(issuer: str = "https://lime.pics") -> dict:
     return {
-        "ok": True,
-        "data": {
-            "issuer": issuer,
-            "jwks_uri": f"https://lime.pics{JWKS_PATH}",
-        },
+        "issuer": issuer,
+        "token_endpoint": f"{issuer}/api/v1/modules/oauth/token",
+        "jwks_uri": f"https://lime.pics{JWKS_PATH}",
+        "grant_types_supported": ["client_credentials"],
     }
 
 
@@ -98,7 +97,7 @@ def test_jwks_cache_invalidate_and_warm(rsa_keypair: tuple) -> None:
 @respx.mock
 def test_jwks_cache_missing_issuer() -> None:
     base = "https://lime.pics"
-    respx.get(f"{base}{METADATA_PATH}").respond(json={"ok": True, "data": {"issuer": ""}})
+    respx.get(f"{base}{METADATA_PATH}").respond(json={"issuer": ""})
     cache = JwksCache(LimeConfig(base_url=base))
     with pytest.raises(ValueError, match="missing issuer"):
         cache.refresh(force=True)
@@ -110,11 +109,8 @@ def test_jwks_cache_cross_origin_jwks_uri() -> None:
     base = "https://lime.pics"
     respx.get(f"{base}{METADATA_PATH}").respond(
         json={
-            "ok": True,
-            "data": {
-                "issuer": "https://lime.pics",
-                "jwks_uri": "https://other.example/jwks",
-            },
+            "issuer": "https://lime.pics",
+            "jwks_uri": "https://other.example/jwks",
         },
     )
     cache = JwksCache(LimeConfig(base_url=base))

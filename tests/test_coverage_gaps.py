@@ -15,11 +15,10 @@ from tests.helpers import sign_mcp_token
 
 def _metadata_body() -> dict:
     return {
-        "ok": True,
-        "data": {
-            "issuer": "https://lime.pics",
-            "jwks_uri": f"https://lime.pics{JWKS_PATH}",
-        },
+        "issuer": "https://lime.pics",
+        "token_endpoint": "https://lime.pics/api/v1/modules/oauth/token",
+        "jwks_uri": f"https://lime.pics{JWKS_PATH}",
+        "grant_types_supported": ["client_credentials"],
     }
 
 
@@ -90,16 +89,33 @@ def test_jwks_cache_metadata_non_object() -> None:
 
 
 @respx.mock
-def test_jwks_cache_relative_jwks_uri(rsa_keypair: tuple) -> None:
-    _, jwk = rsa_keypair
+def test_jwks_cache_metadata_lime_envelope_rejected() -> None:
     base = "https://lime.pics"
     respx.get(f"{base}{METADATA_PATH}").respond(
         json={
             "ok": True,
             "data": {
                 "issuer": "https://lime.pics",
-                "jwks_uri": JWKS_PATH,
+                "jwks_uri": f"https://lime.pics{JWKS_PATH}",
             },
+        },
+    )
+    cache = JwksCache(LimeConfig(base_url=base))
+    with pytest.raises(ValueError, match="metadata missing issuer"):
+        cache.refresh(force=True)
+    cache.close()
+
+
+@respx.mock
+def test_jwks_cache_relative_jwks_uri(rsa_keypair: tuple) -> None:
+    _, jwk = rsa_keypair
+    base = "https://lime.pics"
+    respx.get(f"{base}{METADATA_PATH}").respond(
+        json={
+            "issuer": "https://lime.pics",
+            "token_endpoint": "https://lime.pics/api/v1/modules/oauth/token",
+            "jwks_uri": JWKS_PATH,
+            "grant_types_supported": ["client_credentials"],
         },
     )
     respx.get(f"{base}{JWKS_PATH}").respond(json={"ok": True, "data": {"keys": [jwk]}})
@@ -132,16 +148,32 @@ def test_jwks_cache_unavailable_after_kid_refresh(monkeypatch: pytest.MonkeyPatc
 
 
 @respx.mock
-def test_jwks_cache_default_jwks_path_when_uri_empty(rsa_keypair: tuple) -> None:
-    _, jwk = rsa_keypair
+def test_jwks_cache_metadata_missing_jwks_uri(rsa_keypair: tuple) -> None:
     base = "https://lime.pics"
     respx.get(f"{base}{METADATA_PATH}").respond(
-        json={"ok": True, "data": {"issuer": "https://lime.pics", "jwks_uri": ""}},
+        json={"issuer": "https://lime.pics", "jwks_uri": ""},
     )
-    respx.get(f"{base}{JWKS_PATH}").respond(json={"ok": True, "data": {"keys": [jwk]}})
     cache = JwksCache(LimeConfig(base_url=base))
-    keys, _ = cache.get_jwks("test-kid")
-    assert keys
+    with pytest.raises(ValueError, match="metadata missing jwks_uri"):
+        cache.get_jwks("test-kid")
+    cache.close()
+
+
+@respx.mock
+def test_jwks_cache_metadata_lime_envelope_rejected() -> None:
+    base = "https://lime.pics"
+    respx.get(f"{base}{METADATA_PATH}").respond(
+        json={
+            "ok": True,
+            "data": {
+                "issuer": "https://lime.pics",
+                "jwks_uri": f"https://lime.pics{JWKS_PATH}",
+            },
+        },
+    )
+    cache = JwksCache(LimeConfig(base_url=base))
+    with pytest.raises(ValueError, match="metadata missing issuer"):
+        cache.refresh(force=True)
     cache.close()
 
 

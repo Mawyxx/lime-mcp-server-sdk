@@ -9,7 +9,7 @@ FORBIDDEN_MCP_CLAIMS = frozenset({"user_id", "passport_version", "request_id"})
 
 
 def unwrap_lime_data(body: dict[str, Any]) -> dict[str, Any]:
-    """Unwrap LIME API envelope ``{ ok, data }``."""
+    """Unwrap LIME API envelope ``{ ok, data }`` (Core JWKS and LIME APIs — not OAuth metadata)."""
     if not body.get("ok"):
         raise ValueError("LIME envelope not ok")
     data = body.get("data")

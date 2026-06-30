@@ -12,11 +12,10 @@ from tests.helpers import sign_mcp_token
 
 def _metadata_body() -> dict:
     return {
-        "ok": True,
-        "data": {
-            "issuer": "https://lime.pics",
-            "jwks_uri": f"https://lime.pics{JWKS_PATH}",
-        },
+        "issuer": "https://lime.pics",
+        "token_endpoint": "https://lime.pics/api/v1/modules/oauth/token",
+        "jwks_uri": f"https://lime.pics{JWKS_PATH}",
+        "grant_types_supported": ["client_credentials"],
     }
 
 

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "lime-mcp-server-sdk"
-version = "0.3.0"
+version = "0.4.0"
 description = "JWT verification for LIME MCP resource servers"
 readme = "README.md"
 license = "MIT"
