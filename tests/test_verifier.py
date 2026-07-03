@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import respx
 import pytest
+import respx
 
 from lime_mcp_server import TokenVerifier
 from lime_mcp_server._cache import JwksCache

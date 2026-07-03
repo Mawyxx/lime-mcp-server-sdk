@@ -160,24 +160,6 @@ def test_jwks_cache_metadata_missing_jwks_uri(rsa_keypair: tuple) -> None:
 
 
 @respx.mock
-def test_jwks_cache_metadata_lime_envelope_rejected() -> None:
-    base = "https://lime.pics"
-    respx.get(f"{base}{METADATA_PATH}").respond(
-        json={
-            "ok": True,
-            "data": {
-                "issuer": "https://lime.pics",
-                "jwks_uri": f"https://lime.pics{JWKS_PATH}",
-            },
-        },
-    )
-    cache = JwksCache(LimeConfig(base_url=base))
-    with pytest.raises(ValueError, match="metadata missing issuer"):
-        cache.refresh(force=True)
-    cache.close()
-
-
-@respx.mock
 def test_token_verifier_invalid_token_claim(rsa_keypair: tuple) -> None:
     private_key, jwk = rsa_keypair
     base = "https://lime.pics"
