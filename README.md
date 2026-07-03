@@ -1,60 +1,161 @@
-# lime-mcp-server-sdk
+# lime-mcp-server-sdk — MCP OAuth JWT Verification (JWKS + RS256)
 
-JWT verification for **LIME MCP resource servers** ([ADR 0081](https://github.com/Mawyxx/LIME)).
+**`lime-mcp-server-sdk`** is the official **Python server SDK** for [LIME](https://lime.pics) **MCP resource servers** — verify **MCP OAuth** Bearer JWTs issued by LIME with **JWKS** + **RS256**, in-process caching, and zero-config defaults for production. Built for the [Anthropic MCP](https://modelcontextprotocol.io/) ecosystem: agents authenticate with [`lime-agents-sdk`](https://github.com/Mawyxx/lime-agents-sdk); your server validates `Authorization: Bearer` tokens without hand-rolled PyJWT or metadata fetches on every request.
 
-Install:
+Use this package when you operate an **external MCP resource server** (FastMCP, custom HTTP `/mcp`, etc.). **Not** for site login passports (`aud=lime-site-login`) — use [`lime-sites-sdk`](https://github.com/Mawyxx/lime-site-sdk) on site backends.
+
+[![PyPI version](https://img.shields.io/pypi/v/lime-mcp-server-sdk)](https://pypi.org/project/lime-mcp-server-sdk/)
+[![Python versions](https://img.shields.io/pypi/pyversions/lime-mcp-server-sdk)](https://pypi.org/project/lime-mcp-server-sdk/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![CI](https://github.com/Mawyxx/lime-mcp-server-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/Mawyxx/lime-mcp-server-sdk/actions/workflows/ci.yml)
+[![MCP compatible](https://img.shields.io/badge/MCP-compatible-00C853)](https://modelcontextprotocol.io/)
+
+**📖 Platform API docs:** [https://lime.pics/docs](https://lime.pics/docs#guide-mcpServerSdk)  
+**📦 This SDK:** [github.com/Mawyxx/lime-mcp-server-sdk](https://github.com/Mawyxx/lime-mcp-server-sdk)  
+**🌐 Platform:** [https://lime.pics](https://lime.pics)
+
+---
+
+## Why lime-mcp-server-sdk?
+
+| Problem | SDK solution |
+|---------|----------------|
+| Manual JWKS fetch + PyJWT setup | `TokenVerifier()` — metadata-driven issuer + cached JWKS |
+| Per-request network to LIME | In-memory **JWKS cache** (TTL, `kid` refresh, stale fallback) |
+| Blocking verify in async servers | `verify_async()` via `asyncio.to_thread` |
+| Framework lock-in | Core wheel only — bring your own FastMCP / Starlette middleware |
+
+### MCP OAuth JWT flow (this SDK)
+
+| Step | Who | What happens |
+|------|-----|----------------|
+| 1 | **Agent** ([`lime-agents-sdk`](https://github.com/Mawyxx/lime-agents-sdk)) | `POST /api/v1/modules/oauth/token` with `X-Agent-Token` → MCP JWT (~5 min TTL) |
+| 2 | **Agent** | Calls your MCP RS with `Authorization: Bearer <jwt>` |
+| 3 | **Your server** (**this SDK**) | `TokenVerifier.verify(token)` → RS256 + `aud=mcp` + issuer |
+| 4 | **Your server** | Use `result.agent_id` (`sub` claim) for authorization |
+
+| Artifact | Audience | Verified by |
+|----------|----------|-------------|
+| **MCP access JWT** | External MCP resource servers | **`lime-mcp-server-sdk`** (`TokenVerifier`) |
+| **Site passport JWT** | Site backends (`aud=lime-site-login`) | [`lime-sites-sdk`](https://github.com/Mawyxx/lime-site-sdk) — different token, different SDK |
+
+> **Security:** MCP JWTs are **rejected on LIME HTTP APIs**. This SDK is for **your** MCP server only.
+
+---
+
+## Installation
 
 ```bash
 pip install lime-mcp-server-sdk
 ```
 
+Latest from GitHub:
+
+```bash
+pip install git+https://github.com/Mawyxx/lime-mcp-server-sdk.git
+```
+
+**Requirements:** Python 3.10+ · import: `lime_mcp_server` · deps: `PyJWT`, `cryptography`, `httpx`
+
+---
+
 ## Quick start
+
+### Scenario A — Sync verify (middleware / request handler)
+
+**Story:** Extract the Bearer token from an incoming MCP request and verify it before executing tools.
 
 ```python
 from lime_mcp_server import TokenVerifier, McpAccessTokenClaims
 
-verifier = TokenVerifier()  # defaults: https://lime.pics, aud=mcp
-result = verifier.verify(bearer_token)
-if result.is_valid:
-    claims: McpAccessTokenClaims = result.valid_claims  # sub, iss, aud, iat, exp, jti
-    agent_uuid = result.agent_id  # alias for claims["sub"]
+verifier = TokenVerifier()  # LIME_BASE_URL=https://lime.pics, LIME_OAUTH_AUDIENCE=mcp
+
+
+def authorize_mcp_request(authorization_header: str | None) -> str | None:
+    if not authorization_header:
+        return None
+    token = authorization_header.removeprefix("Bearer ").strip()
+    result = verifier.verify(token)
+    if not result.is_valid:
+        return None
+    claims: McpAccessTokenClaims = result.valid_claims  # type: ignore[assignment]
+    return result.agent_id  # alias for claims["sub"] — agent UUID
 ```
 
-MCP OAuth JWT identity is claim **`sub`** (UUID). There is no separate `agent_id` claim.
+MCP OAuth identity is claim **`sub`** (UUID). There is no separate `agent_id` JWT claim.
 
-## Async verify (FastMCP / ASGI)
+---
 
-```python
-result = await verifier.verify_async(bearer_token)
-```
+### Scenario B — Async FastMCP + JWKS warmup (production)
 
-## Warmup (ASGI lifespan)
+**Story:** Warm JWKS at startup so verification stays fast; use async verify in your MCP auth hook.
 
 ```python
-verifier = TokenVerifier()
-if not verifier.warmup(raise_on_failure=True):
-    raise RuntimeError("JWKS warmup failed")
-```
+from contextlib import asynccontextmanager
 
-`JwksCache.fetch_count` tracks successful metadata+JWKS network fetches (ops/debug).
-
-## FastMCP snippet (not shipped in wheel)
-
-```python
-from lime_mcp_server import TokenVerifier
 from fastmcp import FastMCP
+from lime_mcp_server import TokenVerifier
 
 verifier = TokenVerifier()
+mcp = FastMCP("my-tools")
 
-async def verify_token(bearer: str) -> str | None:
-    token = bearer.removeprefix("Bearer ").strip()
+
+@asynccontextmanager
+async def lifespan(app):
+    if not verifier.warmup(raise_on_failure=True):
+        raise RuntimeError("JWKS warmup failed")
+    yield
+
+
+async def verify_bearer(authorization: str) -> str | None:
+    token = authorization.removeprefix("Bearer ").strip()
     result = await verifier.verify_async(token)
     return result.agent_id if result.is_valid else None
+
+
+# Wire verify_bearer into your MCP server's auth layer.
+# Monorepo reference: github.com/Mawyxx/Lime — scripts/verify/lime_mcp_rs_auth.py
 ```
 
-Monorepo reference adapter: [`scripts/verify/lime_mcp_rs_auth.py`](https://github.com/Mawyxx/Lime/blob/main/scripts/verify/lime_mcp_rs_auth.py).
+`JwksCache.fetch_count` tracks successful metadata + JWKS network fetches (ops/debug).
 
-## Environment variables
+---
+
+## Features
+
+- **`TokenVerifier`** — single entry point for MCP Bearer JWT validation
+- **JWKS caching** — TTL (default 3600s), `kid`-mismatch refresh, min refresh interval, stale fallback on network errors
+- **Fast path after warmup** — verify uses cached keys; no metadata round-trip per request
+- **RS256** — PyJWT + `cryptography`; rejects forbidden site-login claims (`user_id`, `request_id`, …)
+- **`verify_async()`** — non-blocking verify for ASGI / FastMCP
+- **`warmup()`** — prefetch OAuth metadata (RFC 8414) + Core JWKS at startup
+- **Typed claims** — `McpAccessTokenClaims` TypedDict, `py.typed`, mypy strict
+
+---
+
+## API reference (summary)
+
+### `TokenVerifier`
+
+| Method / property | Description |
+|-----------------|-------------|
+| `verify(token)` | Sync RS256 verify → `TokenValidationResult` |
+| `await verify_async(token)` | Same, non-blocking |
+| `warmup(raise_on_failure=False)` | Prefetch metadata + JWKS |
+| `refresh_cache()` / `invalidate_cache()` | Force refresh or clear cache |
+| `.cache` | `JwksCache` (incl. `fetch_count`) |
+| `.config` | Resolved `LimeConfig` |
+
+### `TokenValidationResult`
+
+| Field / property | Description |
+|------------------|-------------|
+| `is_valid` | `True` when signature + `iss` + `aud` + `exp` pass |
+| `valid_claims` | `McpAccessTokenClaims` when valid (`sub`, `iss`, `aud`, `iat`, `exp`, `jti`) |
+| `agent_id` | Alias for `claims["sub"]` |
+| `error` | Human-readable reason when invalid |
+
+### Environment variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -64,17 +165,33 @@ Monorepo reference adapter: [`scripts/verify/lime_mcp_rs_auth.py`](https://githu
 | `LIME_JWT_VERIFY_LEEWAY_SECONDS` | `120` | Clock skew leeway |
 | `LIME_JWKS_MIN_REFRESH_SECONDS` | `60` | Min interval between forced JWKS refresh |
 
-## Development
+Low-level helpers (tests / advanced): `verify_mcp_access_token`, `JwksCache`, `unwrap_lime_data`, `FORBIDDEN_MCP_CLAIMS`.
 
-Monorepo workspace: `sdk/lime-mcp-server-sdk/` (gitignored). Standalone repo: [github.com/Mawyxx/lime-mcp-server-sdk](https://github.com/Mawyxx/lime-mcp-server-sdk).
+---
+
+## Related packages
+
+| Package | Role |
+|---------|------|
+| [`lime-agents-sdk`](https://github.com/Mawyxx/lime-agents-sdk) | Agent worker: issue MCP JWT + MCP client (`list_tools`, `call_tool`) |
+| [`lime-sites-sdk`](https://github.com/Mawyxx/lime-site-sdk) | Site backend: site passport JWT via SSE (not MCP tokens) |
+
+---
+
+## Contributing
+
+Issues and pull requests: [github.com/Mawyxx/lime-mcp-server-sdk](https://github.com/Mawyxx/lime-mcp-server-sdk)
 
 ```bash
-cd sdk/lime-mcp-server-sdk
+git clone https://github.com/Mawyxx/lime-mcp-server-sdk.git
+cd lime-mcp-server-sdk
 pip install -e ".[dev]"
 ruff check src tests
 mypy src/lime_mcp_server
 pytest --cov=lime_mcp_server --cov-fail-under=100
 ```
+
+CI runs on Python 3.10–3.13 with **100% line coverage** on `src/lime_mcp_server`.
 
 Live integration (optional):
 
@@ -82,34 +199,8 @@ Live integration (optional):
 LIME_MCP_SERVER_INTEGRATION=1 LIME_AGENT_TOKEN=at_... pytest tests/integration/ -v
 ```
 
-## Publish (standalone repo)
+---
 
-```bash
-cd sdk/lime-mcp-server-sdk
-git push -u origin main
-git tag v0.4.0
-git push origin v0.4.0
-```
+## License
 
-GitHub Actions on tag `v*` publishes to PyPI via trusted publishing (`publish.yml`, environment `pypi`).
-
-## Changelog
-
-### 0.4.0
-
-- **Breaking:** OAuth metadata (`GET .../oauth-authorization-server`) is raw RFC 8414 JSON — no LIME `{ ok, data }` envelope.
-- Core JWKS still uses LIME envelope; `unwrap_lime_data()` unchanged for JWKS.
-
-### 0.3.0
-
-- `McpAccessTokenClaims` TypedDict; `TokenValidationResult.valid_claims`
-- `verify_async()` for non-blocking RS verify
-- Public `TokenVerifier.warmup()`; `JwksCache.fetch_count` observability
-
-### 0.2.0
-
-- Remove framework adapters (`LimeMcpTokenVerifier`, `[mcp]` extra). Core-only wheel.
-
-### 0.1.0
-
-- Initial release: `TokenVerifier`, `TokenValidationResult`, JWKS cache.
+MIT — see [LICENSE](LICENSE).
