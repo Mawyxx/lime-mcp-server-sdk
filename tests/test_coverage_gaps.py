@@ -5,7 +5,7 @@ import time
 import pytest
 import respx
 
-from lime_mcp_server._cache import JwksCache, JwksSnapshot
+from lime_mcp_server._cache import JwksCache, JwksSnapshot, _parse_oauth_metadata
 from lime_mcp_server._config import LimeConfig
 from lime_mcp_server._envelope import JWKS_PATH, METADATA_PATH
 from lime_mcp_server._types import TokenValidationResult
@@ -271,3 +271,37 @@ def test_token_verifier_invalid_issuer(rsa_keypair: tuple) -> None:
 def test_token_validation_result_empty_sub_on_valid() -> None:
     result = TokenValidationResult(is_valid=True, claims={"sub": "  "})
     assert result.agent_id is None
+
+
+def test_fetch_snapshot_uncounted_blank_issuer() -> None:
+    cache = JwksCache(LimeConfig(base_url="https://lime.pics"))
+
+    def fake_metadata() -> dict[str, str]:
+        return {"issuer": "   ", "jwks_uri": f"https://lime.pics{JWKS_PATH}"}
+
+    cache._fetch_metadata = fake_metadata  # type: ignore[method-assign]
+    with pytest.raises(ValueError, match="metadata missing issuer"):
+        cache._fetch_snapshot_uncounted()
+    cache.close()
+
+
+@respx.mock
+def test_jwks_cache_fetch_jwks_default_path(rsa_keypair: tuple) -> None:
+    _, jwk = rsa_keypair
+    base = "https://lime.pics"
+    respx.get(f"{base}{JWKS_PATH}").respond(json={"ok": True, "data": {"keys": [jwk]}})
+    cache = JwksCache(LimeConfig(base_url=base))
+    keys = cache._fetch_jwks("")
+    assert keys
+    cache.close()
+
+
+def test_parse_oauth_metadata_invalid_grant_types() -> None:
+    with pytest.raises(ValueError, match="grant_types_supported"):
+        _parse_oauth_metadata(
+            {
+                "issuer": "https://lime.pics",
+                "jwks_uri": f"https://lime.pics{JWKS_PATH}",
+                "grant_types_supported": "not-a-list",
+            },
+        )
