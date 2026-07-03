@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import cast
 
 from lime_mcp_server._claims import McpAccessTokenClaims
 
@@ -27,5 +26,5 @@ class TokenValidationResult:
     def valid_claims(self) -> McpAccessTokenClaims | None:
         """Narrowed claims when verification succeeded."""
         if self.is_valid and self.claims is not None:
-            return cast(McpAccessTokenClaims, self.claims)
+            return self.claims
         return None
