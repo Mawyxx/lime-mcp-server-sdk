@@ -66,7 +66,7 @@ pip install git+https://github.com/Mawyxx/lime-mcp-server-sdk.git
 **Story:** Extract the Bearer token from an incoming MCP request and verify it before executing tools.
 
 ```python
-from lime_mcp_server import TokenVerifier, McpAccessTokenClaims
+from lime_mcp_server import TokenVerifier
 
 verifier = TokenVerifier()  # LIME_BASE_URL=https://lime.pics, LIME_OAUTH_AUDIENCE=mcp
 
@@ -75,10 +75,12 @@ def authorize_mcp_request(authorization_header: str | None) -> str | None:
     if not authorization_header:
         return None
     token = authorization_header.removeprefix("Bearer ").strip()
+    if not token:
+        return None
     result = verifier.verify(token)
     if not result.is_valid:
+        # result.error explains invalid signature, aud, exp, forbidden claims, etc.
         return None
-    claims: McpAccessTokenClaims = result.valid_claims  # type: ignore[assignment]
     return result.agent_id  # alias for claims["sub"] — agent UUID
 ```
 
@@ -109,8 +111,13 @@ async def lifespan(app):
 
 async def verify_bearer(authorization: str) -> str | None:
     token = authorization.removeprefix("Bearer ").strip()
+    if not token:
+        return None
     result = await verifier.verify_async(token)
-    return result.agent_id if result.is_valid else None
+    if not result.is_valid:
+        # log result.error in production (invalid aud, expired, bad signature, …)
+        return None
+    return result.agent_id
 
 
 # Wire verify_bearer into your MCP server's auth layer.
