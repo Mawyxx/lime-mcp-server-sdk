@@ -140,6 +140,7 @@ class TokenVerifier:
             return None
 
     def close(self) -> None:
+        """Release HTTP resources held by the JWKS cache."""
         self._cache.close()
 
     def __enter__(self) -> TokenVerifier:

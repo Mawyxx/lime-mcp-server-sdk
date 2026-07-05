@@ -7,7 +7,15 @@ from lime_mcp_server._claims import McpAccessTokenClaims
 
 @dataclass(frozen=True, slots=True)
 class TokenValidationResult:
-    """Structured outcome of MCP JWT verification."""
+    """Structured outcome of ``TokenVerifier.verify()``.
+
+    Does not raise on invalid tokens — inspect ``is_valid`` and ``error``.
+
+    Attributes:
+        is_valid: ``True`` when JWT passed signature, issuer, audience, and expiry checks.
+        claims: Decoded payload when valid; ``None`` otherwise.
+        error: Short reason when ``is_valid`` is ``False``; ``None`` on success.
+    """
 
     is_valid: bool
     claims: McpAccessTokenClaims | None = None

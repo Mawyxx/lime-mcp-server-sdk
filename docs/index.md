@@ -48,5 +48,15 @@ if result.is_valid:
 
 - [Installation](installation.md)
 - [Quick Start](quickstart.md)
-- [API Reference](api.md)
+- [API Reference](api.md) — **method index + one section per method**
 - [Examples](examples.md)
+
+## API at a glance
+
+| Call | Result |
+|------|--------|
+| `TokenVerifier()` | Ready verifier; JWKS prefetched |
+| `verifier.verify(token)` | `TokenValidationResult` — check `is_valid` |
+| `result.agent_id` | Agent UUID (from JWT `sub`) when valid |
+
+Details: [API Reference](api.md).
