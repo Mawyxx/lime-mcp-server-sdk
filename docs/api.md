@@ -1,20 +1,16 @@
 # API Reference
 
-Start with [Home](index.md) for the verify flow and `TokenVerifier` method tree.
+Read [Home](index.md) for the flow diagram and method table.
 
-Each method below has its **own section**. HTTP routes: [LIME platform docs](https://lime.pics/docs).
-
----
+HTTP routes: [LIME platform docs](https://lime.pics/docs).
 
 ## Method order
 
 | Step | Method |
 |------|--------|
-| 1 | `TokenVerifier()` |
-| 2 | `verify()` or `verify_async()` (every request) |
-| 3 | `close()` (shutdown) |
-
----
+| 1 | [`TokenVerifier()`](#lime_mcp_server.TokenVerifier.__init__) |
+| 2 | [`verify()`](#lime_mcp_server.TokenVerifier.verify) or [`verify_async()`](#lime_mcp_server.TokenVerifier.verify_async) |
+| 3 | [`close()`](#lime_mcp_server.TokenVerifier.close) |
 
 ## Class overview
 
@@ -24,79 +20,57 @@ Each method below has its **own section**. HTTP routes: [LIME platform docs](htt
       show_root_heading: true
       members: false
 
----
-
 ## Lifecycle
-
-### `TokenVerifier()`
 
 ::: lime_mcp_server.TokenVerifier.__init__
     options:
-      heading_level: 4
+      heading_level: 3
       show_root_heading: true
       show_symbol_type_heading: false
-
-### `close()`
 
 ::: lime_mcp_server.TokenVerifier.close
     options:
-      heading_level: 4
+      heading_level: 3
       show_root_heading: true
       show_symbol_type_heading: false
-
----
 
 ## Verification
 
-### `verify()`
-
 ::: lime_mcp_server.TokenVerifier.verify
     options:
-      heading_level: 4
+      heading_level: 3
       show_root_heading: true
       show_symbol_type_heading: false
 
-**Never raises** for invalid tokens — check `result.is_valid` and `result.error`.
-
-### `verify_async()`
+Never raises for invalid tokens — check `result.is_valid` and `result.error`.
 
 ::: lime_mcp_server.TokenVerifier.verify_async
     options:
-      heading_level: 4
+      heading_level: 3
       show_root_heading: true
       show_symbol_type_heading: false
-
----
 
 ## JWKS cache
 
-### `warmup()`
-
 ::: lime_mcp_server.TokenVerifier.warmup
     options:
-      heading_level: 4
+      heading_level: 3
       show_root_heading: true
       show_symbol_type_heading: false
-
-### `refresh_cache()`
 
 ::: lime_mcp_server.TokenVerifier.refresh_cache
     options:
-      heading_level: 4
+      heading_level: 3
       show_root_heading: true
       show_symbol_type_heading: false
-
-### `invalidate_cache()`
 
 ::: lime_mcp_server.TokenVerifier.invalidate_cache
     options:
-      heading_level: 4
+      heading_level: 3
       show_root_heading: true
       show_symbol_type_heading: false
 
----
-
-## `TokenValidationResult`
+## TokenValidationResult
 
 ::: lime_mcp_server.TokenValidationResult
     options:
@@ -105,27 +79,21 @@ Each method below has its **own section**. HTTP routes: [LIME platform docs](htt
 
 | Field / property | Meaning |
 |------------------|---------|
-| `is_valid` | `True` when signature, iss, aud, exp OK |
-| `claims` | Decoded JWT payload when valid |
-| `error` | Human-readable reason when invalid |
-| `agent_id` | Property — agent UUID from `sub` (only when valid) |
-
----
+| `is_valid` | Signature, issuer, audience, expiry OK |
+| `claims` | Decoded payload when valid |
+| `error` | Reason when invalid |
+| `agent_id` | Agent UUID from `sub` when valid |
 
 ## Configuration
-
-### `LimeConfig`
 
 ::: lime_mcp_server.LimeConfig
     options:
       heading_level: 3
       show_root_heading: true
 
-Env vars use **`LIME_BASE_URL`** (origin only, no `/api/v1`) — different from agents/sites SDK.
+Env: **`LIME_BASE_URL`** (origin only, no `/api/v1`).
 
----
-
-## Advanced — `JwksCache`
+## Advanced — JwksCache
 
 ::: lime_mcp_server.JwksCache
     options:
