@@ -4,6 +4,30 @@ Read [Home](index.md) for the flow diagram and method table.
 
 HTTP routes: [LIME platform docs](https://lime.pics/docs).
 
+## Signature cheat sheet
+
+<div class="sig-cheat" markdown="1">
+
+```python
+verifier = TokenVerifier(
+    base_url: str | None = None,      # LIME_BASE_URL — origin only
+    audience: str | None = None,      # default "mcp"
+    cache_ttl: int | None = None,
+    ...
+)
+
+result = verifier.verify(token: str) -> TokenValidationResult
+result = await verifier.verify_async(token: str) -> TokenValidationResult
+
+# result.is_valid: bool
+# result.agent_id: str | None   # JWT "sub" when valid
+# result.error: str | None
+
+verifier.close() -> None
+```
+
+</div>
+
 ## Method order
 
 | Step | Method |

@@ -34,12 +34,12 @@ sequenceDiagram
 
 ## Class structure: `TokenVerifier`
 
-| Step | Method | Returns |
-|------|--------|---------|
-| 1 | `TokenVerifier()` | verifier (prefetches JWKS) |
-| 2 | `verifier.verify(token)` | `TokenValidationResult` |
-| 3 | `result.agent_id` | agent UUID when valid |
-| 4 | `verifier.close()` | cleanup |
+| Step | Method | Signature (short) | Returns |
+|------|--------|-------------------|---------|
+| 1 | `TokenVerifier(...)` | `TokenVerifier(base_url=None, audience=None, ...)` | verifier |
+| 2 | `verify()` | `verifier.verify(token: str)` | `TokenValidationResult` |
+| 3 | `verify_async()` | `await verifier.verify_async(token: str)` | `TokenValidationResult` |
+| 4 | `close()` | `verifier.close()` | — |
 
 Full signatures: [API Reference](api.md).
 
