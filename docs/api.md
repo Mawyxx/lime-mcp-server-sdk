@@ -1,27 +1,18 @@
 # API Reference
 
-Each method has its **own section** below. This SDK **verifies** MCP JWTs — it does not issue them.
-Agents get tokens via [lime-agents-sdk](https://lime-agents-sdk.readthedocs.io/).
+Start with [Home](index.md) for the verify flow and `TokenVerifier` method tree.
 
-HTTP details: [LIME platform docs](https://lime.pics/docs#guide-mcpServerSdk).
+Each method below has its **own section**. HTTP routes: [LIME platform docs](https://lime.pics/docs).
 
 ---
 
-## `TokenVerifier` — method index
+## Method order
 
-| Method | What it does | Returns |
-|--------|--------------|---------|
-| [`TokenVerifier()`](#tokenverifier) | Create verifier; prefetch JWKS | `TokenVerifier` |
-| [`verify()`](#verify) | Verify JWT (sync, blocks thread) | `TokenValidationResult` |
-| [`verify_async()`](#verify_async) | Verify JWT (async wrapper) | `TokenValidationResult` |
-| [`warmup()`](#warmup) | Prefetch metadata + JWKS | `bool` |
-| [`refresh_cache()`](#refresh_cache) | Force JWKS refresh | `None` |
-| [`invalidate_cache()`](#invalidate_cache) | Drop cached JWKS | `None` |
-| [`close()`](#close) | Release HTTP resources | `None` |
-
-!!! tip "Typical flow"
-    `verifier = TokenVerifier()` → `result = verifier.verify(bearer_jwt)` →
-    if `result.is_valid`: use `result.agent_id` (alias for JWT `sub`).
+| Step | Method |
+|------|--------|
+| 1 | `TokenVerifier()` |
+| 2 | `verify()` or `verify_async()` (every request) |
+| 3 | `close()` (shutdown) |
 
 ---
 

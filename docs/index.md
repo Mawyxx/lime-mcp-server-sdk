@@ -1,62 +1,123 @@
 # lime-mcp-server-sdk
 
-Official Python SDK for **LIME MCP resource servers**. Verify short-lived MCP OAuth JWTs
-(`aud=mcp`) against LIME Core JWKS — no introspection round-trip, no custom crypto.
+Python library for **your MCP server** — the service that exposes tools/resources and must
+check that the caller is a real LIME agent.
 
 [![PyPI](https://img.shields.io/pypi/v/lime-mcp-server-sdk)](https://pypi.org/project/lime-mcp-server-sdk/)
 [![Documentation](https://readthedocs.org/projects/lime-mcp-server-sdk/badge/?version=latest)](https://lime-mcp-server-sdk.readthedocs.io/)
 [![GitHub](https://img.shields.io/github/stars/Mawyxx/lime-mcp-server-sdk?style=social)](https://github.com/Mawyxx/lime-mcp-server-sdk)
 
-## Key features
+---
 
-- RS256 JWT verification via cached Core JWKS
-- Sync `verify()` and async `verify_async()` for ASGI servers
-- Raw RFC 8414 OAuth metadata + LIME JWKS envelope handling built in
-- Typed `TokenValidationResult` with `agent_id` alias for `sub`
-- Framework-agnostic — use with FastMCP, Starlette, or plain middleware
+## Who is this for?
 
-## Credential boundary
+You run an **MCP resource server** (FastMCP, custom HTTP, etc.). Agents call your server
+with `Authorization: Bearer <jwt>`. This SDK answers one question:
 
-| Role | Credential | SDK |
-|------|------------|-----|
-| Site backend | `X-Site-Token` + site passport JWT | [lime-sites-sdk](https://lime-sites-sdk.readthedocs.io/) |
-| Agent worker | `X-Agent-Token` + auto MCP JWT | [lime-agents-sdk](https://lime-agents-sdk.readthedocs.io/) |
-| **MCP resource server** | **Verify Bearer MCP JWT** | **This package** |
+> Is this JWT really issued by LIME, and which agent is it?
 
-This SDK **does not issue tokens**. Agents obtain MCP JWTs via
-[`lime-agents-sdk`](https://lime-agents-sdk.readthedocs.io/).
+This SDK **does not**:
 
-## Platform documentation
+- Issue tokens (agents use [lime-agents-sdk](https://lime-agents-sdk.readthedocs.io/))
+- Handle website login (sites use [lime-sites-sdk](https://lime-sites-sdk.readthedocs.io/))
 
-HTTP contracts and integration guides live on the LIME platform:
+---
 
-- [LIME platform docs — MCP Server SDK](https://lime.pics/docs#guide-mcpServerSdk)
-- [LIME platform docs — OAuth for MCP](https://lime.pics/docs#guide-oauthMcp)
+## One scenario — verify MCP Bearer token
+
+```
+Agent (lime-agents-sdk)          YOUR MCP SERVER (this SDK)
+        │                                │
+        │  list_tools / call_tool        │
+        │  Authorization: Bearer <jwt>   │
+        │───────────────────────────────>│  TokenVerifier.verify(jwt)
+        │                                │  → is_valid? agent_id?
+        │                                │  → run tool or return 401
+```
+
+---
+
+## Class structure: `TokenVerifier`
+
+```
+TokenVerifier
+│
+├─── SETUP
+│    verifier = TokenVerifier()     reads LIME_BASE_URL; prefetches JWKS
+│    verifier.close()               release HTTP pool
+│
+├─── MAIN METHOD (call on every request)
+│    result = verifier.verify(bearer_jwt)        sync — blocks thread briefly
+│    result = await verifier.verify_async(jwt)   async — for FastAPI/ASGI
+│
+│    if result.is_valid:
+│        agent_id = result.agent_id    # agent UUID (JWT "sub")
+│    else:
+│        error = result.error          # human-readable reason
+│
+└─── CACHE (optional, startup / ops)
+     verifier.warmup()                prefetch keys at boot
+     verifier.refresh_cache()          force refresh
+     verifier.invalidate_cache()       clear cache
+```
+
+Return type details: [API Reference — TokenValidationResult](api.md#tokenvalidationresult)
+
+---
 
 ## Minimal example
 
 ```python
 from lime_mcp_server import TokenVerifier
 
-verifier = TokenVerifier()  # LIME_BASE_URL, LIME_OAUTH_AUDIENCE from env
-result = verifier.verify(bearer_token)
-if result.is_valid:
-    print(result.agent_id)  # agent UUID from claims["sub"]
+verifier = TokenVerifier()
+
+def check_request(authorization_header: str) -> str | None:
+    # Strip "Bearer " prefix
+    token = authorization_header.removeprefix("Bearer ").strip()
+    result = verifier.verify(token)
+    if result.is_valid:
+        return result.agent_id   # use for authorization in your tool handlers
+    return None                  # → respond 401
 ```
 
-## Next steps
+---
 
-- [Installation](installation.md)
-- [Quick Start](quickstart.md)
-- [API Reference](api.md) — **method index + one section per method**
-- [Examples](examples.md)
+## What you need before coding
 
-## API at a glance
+| Item | Notes |
+|------|-------|
+| Public LIME instance | Default `https://lime.pics` via `LIME_BASE_URL` |
+| Bearer JWT from agent | Agent gets it automatically via lime-agents-sdk MCP calls |
 
-| Call | Result |
-|------|--------|
-| `TokenVerifier()` | Ready verifier; JWKS prefetched |
-| `verifier.verify(token)` | `TokenValidationResult` — check `is_valid` |
-| `result.agent_id` | Agent UUID (from JWT `sub`) when valid |
+Env var is **`LIME_BASE_URL`** (origin only, **no** `/api/v1`) — different from agent/site SDKs.
 
-Details: [API Reference](api.md).
+---
+
+## Install
+
+```bash
+pip install lime-mcp-server-sdk
+```
+
+Details: [Installation](installation.md)
+
+---
+
+## Other LIME SDKs
+
+| SDK | Role |
+|-----|------|
+| [lime-agents-sdk](https://lime-agents-sdk.readthedocs.io/) | Agent calls your MCP server |
+| [lime-sites-sdk](https://lime-sites-sdk.readthedocs.io/) | Website login (unrelated) |
+| **lime-mcp-server-sdk** (this) | You verify tokens on MCP server |
+
+Platform HTTP reference: [lime.pics/docs](https://lime.pics/docs#guide-mcpServerSdk)
+
+---
+
+## Next pages
+
+1. [Quick Start](quickstart.md) — sync/async verify, env table
+2. [API Reference](api.md) — every method
+3. [Examples](examples.md) — FastMCP, cache warmup, invalid token
