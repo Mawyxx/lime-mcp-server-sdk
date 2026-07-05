@@ -8,9 +8,11 @@ Use this package when you operate an **external MCP resource server** (FastMCP, 
 [![Python versions](https://img.shields.io/pypi/pyversions/lime-mcp-server-sdk)](https://pypi.org/project/lime-mcp-server-sdk/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![CI](https://github.com/Mawyxx/lime-mcp-server-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/Mawyxx/lime-mcp-server-sdk/actions/workflows/ci.yml)
+[![Documentation](https://readthedocs.org/projects/lime-mcp-server-sdk/badge/?version=latest)](https://lime-mcp-server-sdk.readthedocs.io/)
 [![MCP compatible](https://img.shields.io/badge/MCP-compatible-00C853)](https://modelcontextprotocol.io/)
 
-**📖 Platform API docs:** [https://lime.pics/docs](https://lime.pics/docs#guide-mcpServerSdk)  
+**📖 Python API (Read the Docs):** [lime-mcp-server-sdk.readthedocs.io](https://lime-mcp-server-sdk.readthedocs.io/)  
+**📖 Platform HTTP docs:** [lime.pics/docs#guide-mcpServerSdk](https://lime.pics/docs#guide-mcpServerSdk)  
 **📦 This SDK:** [github.com/Mawyxx/lime-mcp-server-sdk](https://github.com/Mawyxx/lime-mcp-server-sdk)  
 **🌐 Platform:** [https://lime.pics](https://lime.pics)
 

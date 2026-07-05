@@ -32,3 +32,15 @@ jobs:
         run: mypy src/lime_mcp_server
       - name: Pytest
         run: pytest --cov=lime_mcp_server --cov-fail-under=100
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install package and docs tools
+        run: pip install -r docs/requirements.txt && pip install .
+      - name: Build docs
+        run: mkdocs build --strict -f docs/mkdocs.yml

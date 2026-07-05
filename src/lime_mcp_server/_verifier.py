@@ -12,7 +12,13 @@ from lime_mcp_server._types import TokenValidationResult
 
 
 class TokenVerifier:
-    """Verify LIME-issued MCP JWTs for external resource servers."""
+    """Verify LIME-issued MCP JWTs for external resource servers.
+
+    Fetches OAuth metadata and Core JWKS with caching. Does not issue tokens — agents
+    obtain MCP JWTs via ``lime-agents-sdk``.
+
+    See `LIME platform docs <https://lime.pics/docs#guide-mcpServerSdk>`_ for HTTP details.
+    """
 
     def __init__(
         self,
@@ -26,6 +32,18 @@ class TokenVerifier:
         config: LimeConfig | None = None,
         cache: JwksCache | None = None,
     ) -> None:
+        """Create a verifier with optional overrides or injected cache.
+
+        Args:
+            base_url: LIME origin without ``/api/v1`` (default from ``LIME_BASE_URL``).
+            audience: Expected JWT ``aud`` (default ``mcp`` from ``LIME_OAUTH_AUDIENCE``).
+            cache_ttl: JWKS cache TTL seconds.
+            leeway_seconds: JWT clock skew leeway.
+            min_refresh_seconds: Minimum seconds between forced JWKS refreshes.
+            allowed_algorithms: JWT algorithms allowed (default ``RS256`` only).
+            config: Pre-built ``LimeConfig`` (other args override its fields).
+            cache: Optional ``JwksCache`` for tests or shared cache instances.
+        """
         defaults = config or LimeConfig()
         self._config = LimeConfig(
             base_url=(base_url or defaults.base_url).rstrip("/"),
@@ -62,11 +80,25 @@ class TokenVerifier:
         return self._cache.warm()
 
     async def verify_async(self, token: str) -> TokenValidationResult:
-        """Verify a Bearer MCP JWT without blocking the event loop."""
+        """Verify a Bearer MCP JWT without blocking the event loop.
+
+        Args:
+            token: Raw JWT string (without ``Bearer `` prefix).
+
+        Returns:
+            ``TokenValidationResult`` with ``is_valid``, ``claims``, and ``error``.
+        """
         return await asyncio.to_thread(self.verify, token)
 
     def verify(self, token: str) -> TokenValidationResult:
-        """Verify a Bearer MCP JWT and return a structured result."""
+        """Verify a Bearer MCP JWT and return a structured result.
+
+        Args:
+            token: Raw JWT string (without ``Bearer `` prefix).
+
+        Returns:
+            ``TokenValidationResult`` — use ``agent_id`` property for ``sub`` when valid.
+        """
         try:
             kid = self._get_kid(token)
             jwks_keys, issuer = self._cache.get_jwks(kid)
@@ -91,9 +123,11 @@ class TokenVerifier:
             return TokenValidationResult(is_valid=False, error=f"Verification error: {exc}")
 
     def refresh_cache(self) -> None:
+        """Force-refresh OAuth metadata and JWKS from LIME."""
         self._cache.refresh(force=True)
 
     def invalidate_cache(self) -> None:
+        """Drop cached JWKS snapshot (next verify triggers fetch)."""
         self._cache.invalidate()
 
     @staticmethod
