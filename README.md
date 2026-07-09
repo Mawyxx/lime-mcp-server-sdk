@@ -174,7 +174,7 @@ async def verify_bearer(authorization: str) -> str | None:
 | `LIME_JWT_VERIFY_LEEWAY_SECONDS` | `120` | Clock skew leeway |
 | `LIME_JWKS_MIN_REFRESH_SECONDS` | `60` | Min interval between forced JWKS refresh |
 
-Low-level helpers (tests / advanced): `verify_mcp_access_token`, `JwksCache`, `unwrap_lime_data`, `FORBIDDEN_MCP_CLAIMS`.
+Low-level helpers (tests / advanced): `verify_mcp_access_token`, `JwksCache`, `FORBIDDEN_MCP_CLAIMS`.
 
 ---
 

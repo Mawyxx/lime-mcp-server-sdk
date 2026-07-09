@@ -8,7 +8,7 @@ import respx
 
 from lime_mcp_server._cache import JwksCache, JwksSnapshot
 from lime_mcp_server._config import LimeConfig
-from lime_mcp_server._envelope import JWKS_PATH, METADATA_PATH
+from lime_mcp_server._constants import JWKS_PATH, METADATA_PATH
 
 
 def _metadata_body(issuer: str = "https://lime.pics") -> dict:
@@ -21,7 +21,7 @@ def _metadata_body(issuer: str = "https://lime.pics") -> dict:
 
 
 def _jwks_body(jwk: dict) -> dict:
-    return {"ok": True, "data": {"keys": [jwk]}}
+    return {"keys": [jwk]}
 
 
 @respx.mock

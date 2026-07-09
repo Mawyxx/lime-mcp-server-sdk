@@ -9,7 +9,7 @@ from typing import Any
 import httpx
 
 from lime_mcp_server._config import LimeConfig
-from lime_mcp_server._envelope import JWKS_PATH, METADATA_PATH, unwrap_lime_data
+from lime_mcp_server._constants import JWKS_PATH, METADATA_PATH
 
 logger = logging.getLogger("lime.mcp_server")
 
@@ -157,8 +157,7 @@ class JwksCache:
             raise ValueError("jwks response must be JSON object") from exc
         if not isinstance(body, dict):
             raise ValueError("jwks response must be JSON object")
-        data = unwrap_lime_data(body)
-        keys = data.get("keys")
+        keys = body.get("keys")
         if not isinstance(keys, list) or not keys:
             raise ValueError("jwks missing keys")
         return keys

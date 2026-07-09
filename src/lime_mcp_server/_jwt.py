@@ -6,7 +6,7 @@ import jwt
 from jwt.algorithms import RSAAlgorithm
 
 from lime_mcp_server._claims import McpAccessTokenClaims
-from lime_mcp_server._envelope import FORBIDDEN_MCP_CLAIMS
+from lime_mcp_server._constants import FORBIDDEN_MCP_CLAIMS
 
 
 def verify_mcp_access_token(

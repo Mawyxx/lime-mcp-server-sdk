@@ -6,7 +6,7 @@ import respx
 from lime_mcp_server import TokenVerifier
 from lime_mcp_server._cache import JwksCache
 from lime_mcp_server._config import LimeConfig
-from lime_mcp_server._envelope import JWKS_PATH, METADATA_PATH
+from lime_mcp_server._constants import JWKS_PATH, METADATA_PATH
 from tests.helpers import sign_mcp_token
 
 
@@ -20,7 +20,7 @@ def _metadata_body() -> dict:
 
 
 def _jwks_body(jwk: dict) -> dict:
-    return {"ok": True, "data": {"keys": [jwk]}}
+    return {"keys": [jwk]}
 
 
 @respx.mock
@@ -57,7 +57,7 @@ def test_token_verifier_expired(rsa_keypair: tuple) -> None:
 def test_token_verifier_invalid_token() -> None:
     base = "https://lime.pics"
     respx.get(f"{base}{METADATA_PATH}").respond(json=_metadata_body())
-    respx.get(f"{base}{JWKS_PATH}").respond(json={"ok": True, "data": {"keys": []}})
+    respx.get(f"{base}{JWKS_PATH}").respond(json={"keys": []})
 
     verifier = TokenVerifier(base_url=base)
     result = verifier.verify("not-a-jwt")
