@@ -12,7 +12,8 @@ class TokenValidationResult:
     Does not raise on invalid tokens — inspect ``is_valid`` and ``error``.
 
     Attributes:
-        is_valid: ``True`` when JWT passed signature, issuer, audience, and expiry checks.
+        is_valid: ``True`` when JWT passed signature, issuer, audience, expiry,
+            and domain-binding checks.
         claims: Decoded payload when valid; ``None`` otherwise.
         error: Short reason when ``is_valid`` is ``False``; ``None`` on success.
     """
@@ -28,6 +29,15 @@ class TokenValidationResult:
             sub = self.claims.get("sub")
             if isinstance(sub, str) and sub.strip():
                 return sub
+        return None
+
+    @property
+    def domain(self) -> str | None:
+        """Normalized ``domain`` claim when verification succeeded."""
+        if self.is_valid and self.claims:
+            domain = self.claims.get("domain")
+            if isinstance(domain, str) and domain.strip():
+                return domain
         return None
 
     @property

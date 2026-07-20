@@ -16,8 +16,10 @@ def test_verify_mcp_access_token_success(rsa_keypair: tuple) -> None:
         issuer="https://lime.pics",
         audience="mcp",
         jwks_keys=[jwk],
+        expected_domain="rs.example",
     )
     assert claims["sub"] == "agent-uuid"
+    assert claims["domain"] == "rs.example"
 
 
 def test_verify_mcp_access_token_wrong_kid(rsa_keypair: tuple) -> None:
@@ -29,6 +31,7 @@ def test_verify_mcp_access_token_wrong_kid(rsa_keypair: tuple) -> None:
             issuer="https://lime.pics",
             audience="mcp",
             jwks_keys=[jwk],
+            expected_domain="rs.example",
         )
 
 
@@ -41,6 +44,7 @@ def test_verify_mcp_access_token_forbidden_claim(rsa_keypair: tuple) -> None:
             issuer="https://lime.pics",
             audience="mcp",
             jwks_keys=[jwk],
+            expected_domain="rs.example",
         )
 
 
@@ -53,10 +57,63 @@ def test_verify_mcp_access_token_missing_sub(rsa_keypair: tuple) -> None:
             issuer="https://lime.pics",
             audience="mcp",
             jwks_keys=[jwk],
+            expected_domain="rs.example",
         )
 
 
-def test_token_validation_result_agent_id(rsa_keypair: tuple) -> None:
+def test_verify_mcp_access_token_missing_domain(rsa_keypair: tuple) -> None:
+    private_key, jwk = rsa_keypair
+    token = sign_mcp_token(private_key, domain=None)
+    with pytest.raises(jwt.InvalidTokenError, match="Missing domain claim"):
+        verify_mcp_access_token(
+            token,
+            issuer="https://lime.pics",
+            audience="mcp",
+            jwks_keys=[jwk],
+            expected_domain="rs.example",
+        )
+
+
+def test_verify_mcp_access_token_domain_mismatch(rsa_keypair: tuple) -> None:
+    private_key, jwk = rsa_keypair
+    token = sign_mcp_token(private_key, domain="other.example")
+    with pytest.raises(jwt.InvalidTokenError, match="Domain mismatch"):
+        verify_mcp_access_token(
+            token,
+            issuer="https://lime.pics",
+            audience="mcp",
+            jwks_keys=[jwk],
+            expected_domain="rs.example",
+        )
+
+
+def test_verify_mcp_access_token_non_canonical_domain(rsa_keypair: tuple) -> None:
+    private_key, jwk = rsa_keypair
+    token = sign_mcp_token(private_key, domain="RS.Example")
+    with pytest.raises(jwt.InvalidTokenError, match="Invalid domain claim"):
+        verify_mcp_access_token(
+            token,
+            issuer="https://lime.pics",
+            audience="mcp",
+            jwks_keys=[jwk],
+            expected_domain="rs.example",
+        )
+
+
+def test_verify_mcp_access_token_invalid_domain_claim(rsa_keypair: tuple) -> None:
+    private_key, jwk = rsa_keypair
+    token = sign_mcp_token(private_key, domain="rs.example:443")
+    with pytest.raises(jwt.InvalidTokenError, match="Invalid domain claim"):
+        verify_mcp_access_token(
+            token,
+            issuer="https://lime.pics",
+            audience="mcp",
+            jwks_keys=[jwk],
+            expected_domain="rs.example",
+        )
+
+
+def test_token_validation_result_agent_id_and_domain(rsa_keypair: tuple) -> None:
     private_key, jwk = rsa_keypair
     token = sign_mcp_token(private_key, sub="uuid-123")
     claims = verify_mcp_access_token(
@@ -64,15 +121,18 @@ def test_token_validation_result_agent_id(rsa_keypair: tuple) -> None:
         issuer="https://lime.pics",
         audience="mcp",
         jwks_keys=[jwk],
+        expected_domain="rs.example",
     )
     result = TokenValidationResult(is_valid=True, claims=claims)
     assert result.agent_id == "uuid-123"
+    assert result.domain == "rs.example"
 
 
 def test_token_validation_result_valid_claims_when_invalid() -> None:
     result = TokenValidationResult(is_valid=False, error="bad")
     assert result.valid_claims is None
     assert result.agent_id is None
+    assert result.domain is None
 
 
 def test_verify_mcp_access_token_expired(rsa_keypair: tuple) -> None:
@@ -84,17 +144,19 @@ def test_verify_mcp_access_token_expired(rsa_keypair: tuple) -> None:
             issuer="https://lime.pics",
             audience="mcp",
             jwks_keys=[jwk],
+            expected_domain="rs.example",
             leeway_seconds=0,
         )
 
 
-def test_verify_mcp_access_token_wrong_audience(rsa_keypair: tuple) -> None:
+def test_verify_mcp_access_token_wrong_audience_before_domain(rsa_keypair: tuple) -> None:
     private_key, jwk = rsa_keypair
-    token = sign_mcp_token(private_key)
+    token = sign_mcp_token(private_key, domain=None)
     with pytest.raises(jwt.InvalidAudienceError):
         verify_mcp_access_token(
             token,
             issuer="https://lime.pics",
             audience="wrong",
             jwks_keys=[jwk],
+            expected_domain="rs.example",
         )

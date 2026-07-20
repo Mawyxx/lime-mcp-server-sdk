@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 
 from lime_mcp_server import TokenVerifier
 
-verifier = TokenVerifier()
+verifier = TokenVerifier(expected_domain="autonomad.ai")
 
 @asynccontextmanager
 async def lifespan(_app):
@@ -27,7 +27,7 @@ For a full FastMCP + Bearer guard reference, see the LIME monorepo harness
 ```python
 from lime_mcp_server import TokenVerifier
 
-verifier = TokenVerifier()
+verifier = TokenVerifier(expected_domain="autonomad.ai")
 verifier.warmup(raise_on_failure=True)
 
 # After key rotation or repeated 401s from stale keys:
@@ -39,7 +39,7 @@ verifier.refresh_cache()
 ```python
 from lime_mcp_server import TokenVerifier
 
-verifier = TokenVerifier()
+verifier = TokenVerifier(expected_domain="autonomad.ai")
 
 expired = verifier.verify("eyJ...expired...")
 assert expired.is_valid is False
@@ -49,11 +49,21 @@ garbage = verifier.verify("not-a-jwt")
 assert garbage.is_valid is False
 ```
 
+## Domain binding errors
+
+```python
+# JWT minted for another RS → Domain mismatch
+result = verifier.verify(token_for_other_host)
+assert result.error == "Domain mismatch"
+```
+
 ## Anti-patterns
 
 | Mistake | Correct approach |
 |---------|------------------|
+| `TokenVerifier()` with no pin | Pass `expected_domain=` or set `LIME_EXPECTED_DOMAIN` |
 | Expect `user_id` in MCP JWT | Identity is `sub` only; use `result.agent_id` |
+| Pin `host:port` | Ports are rejected — pin hostname only |
 | Verify site passport with this SDK | Use `lime-sites-sdk` for `aud=lime-site-login` |
 | Unwrap OAuth metadata with `{ok,data}` | Metadata is raw RFC 8414; unwrap JWKS only |
 | Use `LIME_API_BASE` here | Use `LIME_BASE_URL` (origin without `/api/v1`) |

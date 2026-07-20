@@ -33,6 +33,7 @@ def sign_mcp_token(
     sub: str = "agent-uuid",
     issuer: str = "https://lime.pics",
     audience: str = "mcp",
+    domain: str | None = "rs.example",
     exp_offset: int = 3600,
     extra_claims: dict[str, Any] | None = None,
 ) -> str:
@@ -45,6 +46,8 @@ def sign_mcp_token(
         "exp": now + exp_offset,
         "jti": "test-jti",
     }
+    if domain is not None:
+        payload["domain"] = domain
     if extra_claims:
         payload.update(extra_claims)
     return jwt.encode(

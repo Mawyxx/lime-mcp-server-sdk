@@ -8,6 +8,11 @@ def _env_int(name: str, default: str) -> int:
     return int(os.environ.get(name, default))
 
 
+def _env_expected_domain() -> str | None:
+    raw = os.environ.get("LIME_EXPECTED_DOMAIN", "").strip()
+    return raw or None
+
+
 @dataclass(frozen=True, slots=True)
 class LimeConfig:
     """Configuration for MCP JWT verification against LIME Core JWKS."""
@@ -32,3 +37,5 @@ class LimeConfig:
         default_factory=lambda: os.environ.get("LIME_VERIFY_USER_AGENT", "curl/8.5.0"),
     )
     http_timeout: float = 30.0
+    # Optional on LimeConfig; TokenVerifier requires a resolved pin (kwarg / config / env).
+    expected_domain: str | None = field(default_factory=_env_expected_domain)

@@ -6,11 +6,12 @@ from lime_mcp_server._cache import JwksCache
 from lime_mcp_server._claims import McpAccessTokenClaims
 from lime_mcp_server._config import LimeConfig
 from lime_mcp_server._constants import FORBIDDEN_MCP_CLAIMS, JWKS_PATH, METADATA_PATH
+from lime_mcp_server._domain import normalize_mcp_domain
 from lime_mcp_server._jwt import verify_mcp_access_token
 from lime_mcp_server._types import TokenValidationResult
 from lime_mcp_server._verifier import TokenVerifier
 
-__version__ = "0.5.0"
+__version__ = "1.0.0"
 
 __all__ = [
     "FORBIDDEN_MCP_CLAIMS",
@@ -21,7 +22,9 @@ __all__ = [
     "McpAccessTokenClaims",
     "TokenValidationResult",
     "TokenVerifier",
+    "__version__",
     "jwks_cache_ttl_seconds",
+    "normalize_mcp_domain",
     "verify_mcp_access_token",
 ]
 

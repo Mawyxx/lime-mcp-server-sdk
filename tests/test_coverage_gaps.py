@@ -167,7 +167,7 @@ def test_token_verifier_invalid_token_claim(rsa_keypair: tuple) -> None:
     respx.get(f"{base}{JWKS_PATH}").respond(json={"keys": [jwk]})
 
     token = sign_mcp_token(private_key, extra_claims={"user_id": "forbidden"})
-    verifier = TokenVerifier(base_url=base)
+    verifier = TokenVerifier(expected_domain="rs.example", base_url=base)
     result = verifier.verify(token)
     assert result.is_valid is False
     assert result.error is not None
@@ -216,7 +216,7 @@ def test_token_verifier_verify_claims_raises(
     respx.get(f"{base}{JWKS_PATH}").respond(json={"keys": [jwk]})
 
     token = sign_mcp_token(private_key)
-    verifier = TokenVerifier(base_url=base)
+    verifier = TokenVerifier(expected_domain="rs.example", base_url=base)
 
     def boom(**_kwargs: object) -> dict[str, str]:
         raise RuntimeError("decode failed")
@@ -261,7 +261,7 @@ def test_token_verifier_invalid_issuer(rsa_keypair: tuple) -> None:
     respx.get(f"{base}{JWKS_PATH}").respond(json={"keys": [jwk]})
 
     token = sign_mcp_token(private_key, issuer="https://wrong.example")
-    verifier = TokenVerifier(base_url=base)
+    verifier = TokenVerifier(expected_domain="rs.example", base_url=base)
     result = verifier.verify(token)
     assert result.is_valid is False
     assert result.error == "Invalid issuer"

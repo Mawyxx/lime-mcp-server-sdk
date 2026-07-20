@@ -14,7 +14,8 @@ def test_live_lime_jwks_warmup() -> None:
         pytest.skip("set LIME_MCP_SERVER_INTEGRATION=1 for live JWKS test")
 
     base = os.environ.get("LIME_BASE_URL", "https://lime.pics").rstrip("/")
-    verifier = TokenVerifier(base_url=base)
+    pin = os.environ.get("LIME_EXPECTED_DOMAIN", "rs.example").strip() or "rs.example"
+    verifier = TokenVerifier(base_url=base, expected_domain=pin)
     try:
         verifier.refresh_cache()
     finally:
@@ -32,16 +33,21 @@ def test_live_verify_mcp_token() -> None:
 
     base = os.environ.get("LIME_BASE_URL", "https://lime.pics").rstrip("/")
     api_base = os.environ.get("LIME_API_BASE", f"{base}/api/v1").rstrip("/")
+    pin = os.environ.get("LIME_EXPECTED_DOMAIN", "rs.example").strip() or "rs.example"
 
     response = httpx.post(
         f"{api_base}/modules/oauth/token",
-        headers={"X-Agent-Token": agent_token},
+        headers={
+            "X-Agent-Token": agent_token,
+            "Content-Type": "application/json",
+        },
+        json={"domain": pin},
         timeout=30.0,
     )
     assert response.status_code == 200
     access_token = response.json()["access_token"]
 
-    verifier = TokenVerifier(base_url=base)
+    verifier = TokenVerifier(base_url=base, expected_domain=pin)
     try:
         result = verifier.verify(access_token)
     finally:
@@ -49,3 +55,4 @@ def test_live_verify_mcp_token() -> None:
 
     assert result.is_valid is True
     assert result.agent_id is not None
+    assert result.domain == pin

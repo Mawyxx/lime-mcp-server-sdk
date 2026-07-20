@@ -12,7 +12,7 @@ the caller is a real LIME agent.
 You run an **MCP resource server** (FastMCP, custom HTTP, etc.). Agents call your server
 with `Authorization: Bearer <jwt>`. This SDK answers:
 
-> Is this JWT issued by LIME, and which agent is it?
+> Is this JWT issued by LIME for **this** resource server, and which agent is it?
 
 !!! warning "This SDK does not"
     - Issue tokens → use [lime-agents-sdk](https://lime-agents-sdk.readthedocs.io/)
@@ -36,7 +36,7 @@ sequenceDiagram
 
 | Step | Method | Signature (short) | Returns |
 |------|--------|-------------------|---------|
-| 1 | `TokenVerifier(...)` | `TokenVerifier(base_url=None, audience=None, ...)` | verifier |
+| 1 | `TokenVerifier(...)` | `TokenVerifier(expected_domain=…, base_url=None, …)` | verifier |
 | 2 | `verify()` | `verifier.verify(token: str)` | `TokenValidationResult` |
 | 3 | `verify_async()` | `await verifier.verify_async(token: str)` | `TokenValidationResult` |
 | 4 | `close()` | `verifier.close()` | — |
@@ -48,7 +48,7 @@ Full signatures: [API Reference](api.md).
 ```python
 from lime_mcp_server import TokenVerifier
 
-verifier = TokenVerifier()
+verifier = TokenVerifier(expected_domain="autonomad.ai")
 
 def authenticate(authorization: str | None) -> str | None:
     if not authorization or not authorization.startswith("Bearer "):
@@ -62,8 +62,9 @@ def authenticate(authorization: str | None) -> str | None:
 
 | Item | Notes |
 |------|-------|
+| `expected_domain` / `LIME_EXPECTED_DOMAIN` | Hostname this RS serves (ports rejected) |
 | `LIME_BASE_URL` | Default `https://lime.pics` (origin only, no `/api/v1`) |
-| Bearer JWT | Agent gets it via lime-agents-sdk MCP calls |
+| Bearer JWT | Agent gets it via lime-agents-sdk with matching `target` |
 
 ## Install
 

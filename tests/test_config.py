@@ -19,10 +19,17 @@ def test_lime_config_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("LIME_BASE_URL", "https://custom.example")
     monkeypatch.setenv("LIME_OAUTH_AUDIENCE", "custom-aud")
     monkeypatch.setenv("LIME_JWKS_CACHE_TTL_SECONDS", "120")
+    monkeypatch.setenv("LIME_EXPECTED_DOMAIN", "autonomad.ai")
     config = LimeConfig()
     assert config.base_url == "https://custom.example"
     assert config.audience == "custom-aud"
     assert config.cache_ttl == 120
+    assert config.expected_domain == "autonomad.ai"
+
+
+def test_lime_config_expected_domain_optional(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("LIME_EXPECTED_DOMAIN", raising=False)
+    assert LimeConfig().expected_domain is None
 
 
 def test_jwks_cache_ttl_seconds_default(monkeypatch: pytest.MonkeyPatch) -> None:

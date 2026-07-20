@@ -22,7 +22,7 @@ Use this package when you operate an **external MCP resource server** (FastMCP, 
 
 | Problem | SDK solution |
 |---------|----------------|
-| Manual JWKS fetch + PyJWT setup | `TokenVerifier()` — metadata-driven issuer + cached JWKS |
+| Manual JWKS fetch + PyJWT setup | `TokenVerifier(expected_domain=…)` — domain-bound JWKS verify |
 | Per-request network to LIME | In-memory **JWKS cache** (TTL, `kid` refresh, stale fallback) |
 | Blocking verify in async servers | `verify_async()` via `asyncio.to_thread` |
 | Framework lock-in | Core wheel only — bring your own FastMCP / Starlette middleware |
@@ -33,8 +33,8 @@ Use this package when you operate an **external MCP resource server** (FastMCP, 
 |------|-----|----------------|
 | 1 | **Agent** ([`lime-agents-sdk`](https://github.com/Mawyxx/lime-agents-sdk)) | `POST /api/v1/modules/oauth/token` with `X-Agent-Token` → MCP JWT (~5 min TTL) |
 | 2 | **Agent** | Calls your MCP RS with `Authorization: Bearer <jwt>` |
-| 3 | **Your server** (**this SDK**) | `TokenVerifier.verify(token)` → RS256 + `aud=mcp` + issuer |
-| 4 | **Your server** | Use `result.agent_id` (`sub` claim) for authorization |
+| 3 | **Your server** (**this SDK**) | `TokenVerifier.verify(token)` → RS256 + `aud=mcp` + issuer + `domain` pin |
+| 4 | **Your server** | Use `result.agent_id` / `result.domain` for authorization |
 
 | Artifact | Audience | Verified by |
 |----------|----------|-------------|
@@ -70,7 +70,8 @@ pip install git+https://github.com/Mawyxx/lime-mcp-server-sdk.git
 ```python
 from lime_mcp_server import TokenVerifier
 
-verifier = TokenVerifier()  # LIME_BASE_URL=https://lime.pics, LIME_OAUTH_AUDIENCE=mcp
+# Required: pin the hostname this RS serves (or set LIME_EXPECTED_DOMAIN).
+verifier = TokenVerifier(expected_domain="autonomad.ai")
 
 
 def authorize_mcp_request(authorization_header: str | None) -> str | None:
@@ -81,7 +82,7 @@ def authorize_mcp_request(authorization_header: str | None) -> str | None:
         return None
     result = verifier.verify(token)
     if not result.is_valid:
-        # result.error explains invalid signature, aud, exp, forbidden claims, etc.
+        # Missing/invalid/mismatched domain, aud, exp, signature, …
         return None
     return result.agent_id  # alias for claims["sub"] — agent UUID
 ```
@@ -100,7 +101,7 @@ from contextlib import asynccontextmanager
 from fastmcp import FastMCP
 from lime_mcp_server import TokenVerifier
 
-verifier = TokenVerifier()
+verifier = TokenVerifier(expected_domain="autonomad.ai")
 mcp = FastMCP("my-tools")
 
 
@@ -132,7 +133,7 @@ async def verify_bearer(authorization: str) -> str | None:
 
 ## Features
 
-- **`TokenVerifier`** — single entry point for MCP Bearer JWT validation
+- **`TokenVerifier`** — MCP Bearer JWT validation with mandatory domain binding
 - **JWKS caching** — TTL (default 3600s), `kid`-mismatch refresh, min refresh interval, stale fallback on network errors
 - **Fast path after warmup** — verify uses cached keys; no metadata round-trip per request
 - **RS256** — PyJWT + `cryptography`; rejects forbidden site-login claims (`user_id`, `request_id`, …)
@@ -159,9 +160,10 @@ async def verify_bearer(authorization: str) -> str | None:
 
 | Field / property | Description |
 |------------------|-------------|
-| `is_valid` | `True` when signature + `iss` + `aud` + `exp` pass |
-| `valid_claims` | `McpAccessTokenClaims` when valid (`sub`, `iss`, `aud`, `iat`, `exp`, `jti`) |
+| `is_valid` | `True` when signature + `iss` + `aud` + `exp` + `domain` pass |
+| `valid_claims` | `McpAccessTokenClaims` when valid (`sub`, `domain`, `iss`, `aud`, `iat`, `exp`, `jti`) |
 | `agent_id` | Alias for `claims["sub"]` |
+| `domain` | Bound RS hostname from JWT claim |
 | `error` | Human-readable reason when invalid |
 
 ### Environment variables
@@ -173,8 +175,11 @@ async def verify_bearer(authorization: str) -> str | None:
 | `LIME_JWKS_CACHE_TTL_SECONDS` | `3600` | Metadata + JWKS cache TTL |
 | `LIME_JWT_VERIFY_LEEWAY_SECONDS` | `120` | Clock skew leeway |
 | `LIME_JWKS_MIN_REFRESH_SECONDS` | `60` | Min interval between forced JWKS refresh |
+| `LIME_EXPECTED_DOMAIN` | *(required if not passed as kwarg)* | Hostname this RS serves; ports rejected |
 
-Low-level helpers (tests / advanced): `verify_mcp_access_token`, `JwksCache`, `FORBIDDEN_MCP_CLAIMS`.
+Domain errors (stable strings): `Missing domain claim`, `Invalid domain claim`, `Domain mismatch`.
+
+Low-level helpers (tests / advanced): `verify_mcp_access_token`, `normalize_mcp_domain`, `JwksCache`, `FORBIDDEN_MCP_CLAIMS`.
 
 ---
 

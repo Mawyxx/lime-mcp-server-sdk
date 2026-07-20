@@ -12,3 +12,4 @@ class McpAccessTokenClaims(TypedDict):
     iat: int
     exp: int
     jti: str
+    domain: str

@@ -10,8 +10,9 @@ HTTP routes: [LIME platform docs](https://lime.pics/docs).
 
 ```python
 verifier = TokenVerifier(
-    base_url: str | None = None,      # LIME_BASE_URL — origin only
-    audience: str | None = None,      # default "mcp"
+    expected_domain: str | None = None,  # or LIME_EXPECTED_DOMAIN (required)
+    base_url: str | None = None,         # LIME_BASE_URL — origin only
+    audience: str | None = None,         # default "mcp"
     cache_ttl: int | None = None,
     ...
 )
@@ -21,6 +22,7 @@ result = await verifier.verify_async(token: str) -> TokenValidationResult
 
 # result.is_valid: bool
 # result.agent_id: str | None   # JWT "sub" when valid
+# result.domain: str | None     # JWT "domain" when valid
 # result.error: str | None
 
 verifier.close() -> None
@@ -103,10 +105,11 @@ Never raises for invalid tokens — check `result.is_valid` and `result.error`.
 
 | Field / property | Meaning |
 |------------------|---------|
-| `is_valid` | Signature, issuer, audience, expiry OK |
+| `is_valid` | Signature, issuer, audience, expiry, domain OK |
 | `claims` | Decoded payload when valid |
 | `error` | Reason when invalid |
 | `agent_id` | Agent UUID from `sub` when valid |
+| `domain` | Bound RS hostname when valid |
 
 ## Configuration
 
@@ -115,7 +118,15 @@ Never raises for invalid tokens — check `result.is_valid` and `result.error`.
       heading_level: 3
       show_root_heading: true
 
-Env: **`LIME_BASE_URL`** (origin only, no `/api/v1`).
+Env: **`LIME_EXPECTED_DOMAIN`** (required pin unless passed as kwarg),
+**`LIME_BASE_URL`** (origin only, no `/api/v1`).
+
+## Domain normalize
+
+::: lime_mcp_server.normalize_mcp_domain
+    options:
+      heading_level: 3
+      show_root_heading: true
 
 ## Advanced — JwksCache
 
