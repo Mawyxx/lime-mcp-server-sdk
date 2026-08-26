@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Docs / DX
+
+- README leads with task + 10-second `TokenVerifier` sample; flow table below Quick start.
+- Added `examples/verify-middleware` and `examples/async-warmup`.
+- PyPI description: zero JWKS boilerplate.
+
 ## 1.0.0
 
 ### BREAKING

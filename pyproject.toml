@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "lime-mcp-server-sdk"
 version = "1.0.0"
-description = "Official Python server SDK for LIME MCP resource servers: MCP OAuth Bearer JWT verification via JWKS and RS256, in-process caching, async verify — Anthropic MCP compatible."
+description = "Verify LIME MCP passport JWTs on your resource server: JWKS/RS256, domain pin, in-process cache, async verify. Zero JWKS boilerplate."
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
