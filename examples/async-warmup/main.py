@@ -11,8 +11,7 @@ verifier = TokenVerifier(expected_domain="tools.example.com")
 
 @asynccontextmanager
 async def lifespan(app):  # type: ignore[no-untyped-def]
-    if not verifier.warmup(raise_on_failure=True):
-        raise RuntimeError("JWKS warmup failed")
+    verifier.warmup(raise_on_failure=True)  # raises on JWKS failure
     yield
 
 

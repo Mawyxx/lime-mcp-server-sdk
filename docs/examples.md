@@ -41,12 +41,13 @@ from lime_mcp_server import TokenVerifier
 
 verifier = TokenVerifier(expected_domain="autonomad.ai")
 
-expired = verifier.verify("eyJ...expired...")
-assert expired.is_valid is False
-assert expired.error == "Token expired"
-
 garbage = verifier.verify("not-a-jwt")
 assert garbage.is_valid is False
+# error is typically "Invalid token: ..." — not "Token expired"
+
+# "Token expired" only for a real JWT whose exp is past (and within leeway):
+# expired = verifier.verify(real_expired_jwt)
+# assert expired.error == "Token expired"
 ```
 
 ## Domain binding errors
