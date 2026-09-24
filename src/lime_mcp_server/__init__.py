@@ -11,7 +11,7 @@ from lime_mcp_server._jwt import verify_mcp_access_token
 from lime_mcp_server._types import TokenValidationResult
 from lime_mcp_server._verifier import TokenVerifier
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 __all__ = [
     "FORBIDDEN_MCP_CLAIMS",

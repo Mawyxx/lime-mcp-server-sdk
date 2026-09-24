@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.1
 
 ### Fixed
 
@@ -19,6 +19,8 @@
 - README leads with task + 10-second `TokenVerifier` sample; flow table below Quick start.
 - Added `examples/verify-middleware` and `examples/async-warmup`.
 - PyPI description: zero JWKS boilerplate.
+- Dropped unsupported `show_signature_defaults` mkdocstrings option so the
+  strict docs build passes with mkdocstrings-python 2.x.
 
 ## 1.0.0
 
