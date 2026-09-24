@@ -15,15 +15,44 @@ _HOSTNAME_RE = re.compile(
     r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
 )
 
+_RESERVED_EXACT = frozenset(
+    {
+        "localhost",
+        "metadata.google.internal",
+        "metadata",
+        "kubernetes",
+        "kubernetes.default",
+        "kubernetes.default.svc",
+    }
+)
+
+_RESERVED_SUFFIXES = (
+    ".localhost",
+    ".local",
+    ".internal",
+    ".intranet",
+    ".corp",
+    ".home",
+    ".lan",
+)
+
+
+def _is_reserved_hostname(host: str) -> bool:
+    if host in _RESERVED_EXACT:
+        return True
+    return any(host.endswith(suffix) for suffix in _RESERVED_SUFFIXES)
+
 
 def normalize_mcp_domain(raw: str) -> str:
     """Normalize MCP RS domain for JWT claim ``domain`` (ADR 0081 Amendment v9).
 
     Accepts bare hostnames or URL-ish strings. Strips ``http(s)://`` and path
-    after the first ``/``. Rejects empty input, userinfo, ports, and IP literals.
+    after the first ``/``. Rejects empty input, userinfo, ports, IP literals,
+    and reserved/special-use hostnames (localhost, ``*.local``, cloud metadata, …).
 
     Raises:
-        ValueError: When input is empty or not a valid DNS hostname.
+        ValueError: When input is empty, a reserved hostname, or not a valid
+            DNS hostname.
     """
     if not isinstance(raw, str):
         raise ValueError("domain is required")
@@ -63,5 +92,8 @@ def normalize_mcp_domain(raw: str) -> str:
 
     if not _HOSTNAME_RE.match(value):
         raise ValueError("domain must be a valid DNS hostname")
+
+    if _is_reserved_hostname(value):
+        raise ValueError("domain must not be a reserved or special-use hostname")
 
     return value

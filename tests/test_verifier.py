@@ -197,6 +197,27 @@ def test_token_verifier_env_only_pin(
     verifier.close()
 
 
+@respx.mock
+def test_token_verifier_env_fallback_with_config_without_pin(
+    monkeypatch: pytest.MonkeyPatch,
+    rsa_keypair: tuple,
+) -> None:
+    private_key, jwk = rsa_keypair
+    base = "https://lime.pics"
+    respx.get(f"{base}{METADATA_PATH}").respond(json=_metadata_body())
+    respx.get(f"{base}{JWKS_PATH}").respond(json=_jwks_body(jwk))
+    monkeypatch.setenv("LIME_EXPECTED_DOMAIN", _PIN)
+
+    config = LimeConfig(base_url=base, min_refresh_seconds=0, expected_domain=None)
+    token = sign_mcp_token(private_key)
+    verifier = TokenVerifier(config=config)
+    assert verifier.config.expected_domain == _PIN
+    result = verifier.verify(token)
+    assert result.is_valid is True
+    assert result.domain == _PIN
+    verifier.close()
+
+
 def test_token_verifier_config_property() -> None:
     verifier = TokenVerifier(
         expected_domain=_PIN,

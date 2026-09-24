@@ -218,7 +218,7 @@ def test_token_verifier_verify_claims_raises(
     token = sign_mcp_token(private_key)
     verifier = TokenVerifier(expected_domain="rs.example", base_url=base)
 
-    def boom(**_kwargs: object) -> dict[str, str]:
+    def boom(_token: str, **_kwargs: object) -> dict[str, str]:
         raise RuntimeError("decode failed")
 
     monkeypatch.setattr("lime_mcp_server._verifier.verify_mcp_access_token", boom)

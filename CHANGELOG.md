@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Fixed
+
+- `normalize_mcp_domain()` rejects reserved/special-use hosts (localhost,
+  `*.local`, `*.internal`, cloud metadata, `kubernetes.default.svc`) — parity
+  with Core ADR 0081 Amendment v9.
+- `TokenVerifier` maps unexpected verification failures through a typed error
+  tuple (HTTP/OS/PyJWT) instead of bare `except Exception`; `kid` lookup no
+  longer swallows non-JWT exceptions.
+- Domain pin fallback through `LimeConfig()` is covered by tests; mypy strict
+  assignment error in `_resolve_expected_domain` resolved.
+- Tests import as a package (`tests/__init__.py`) to avoid module shadowing.
+
 ### Docs / DX
 
 - README leads with task + 10-second `TokenVerifier` sample; flow table below Quick start.

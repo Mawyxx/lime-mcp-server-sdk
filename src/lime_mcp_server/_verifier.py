@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import asyncio
-import os
 from typing import Any
 
+import httpx
 import jwt
 
 from lime_mcp_server._cache import JwksCache
@@ -20,6 +20,14 @@ _DOMAIN_RESULT_ERRORS = frozenset(
     },
 )
 
+_EXTERNAL_VERIFY_ERRORS = (
+    httpx.HTTPError,
+    OSError,
+    RuntimeError,
+    ValueError,
+    jwt.PyJWTError,
+)
+
 
 def _resolve_expected_domain(
     *,
@@ -27,17 +35,15 @@ def _resolve_expected_domain(
     config: LimeConfig | None,
 ) -> str:
     """Resolve and normalize RS domain pin (kwarg → config → env)."""
+    raw: str | None
     if expected_domain is not None:
         raw = expected_domain
     elif config is not None and config.expected_domain is not None:
         raw = config.expected_domain
     else:
-        raw = os.environ.get("LIME_EXPECTED_DOMAIN", "").strip() or None
-        if raw is None and config is None:
-            # LimeConfig() already pulled env into expected_domain via default_factory.
-            raw = LimeConfig().expected_domain
+        raw = LimeConfig().expected_domain
 
-    if raw is None or (isinstance(raw, str) and not raw.strip()):
+    if raw is None or not raw.strip():
         raise ValueError("expected_domain is required")
 
     return normalize_mcp_domain(raw)
@@ -168,7 +174,7 @@ class TokenVerifier:
             if message in _DOMAIN_RESULT_ERRORS:
                 return TokenValidationResult(is_valid=False, error=message)
             return TokenValidationResult(is_valid=False, error=f"Invalid token: {exc}")
-        except Exception as exc:
+        except _EXTERNAL_VERIFY_ERRORS as exc:
             return TokenValidationResult(is_valid=False, error=f"Verification error: {exc}")
 
     def refresh_cache(self) -> None:
@@ -185,7 +191,7 @@ class TokenVerifier:
             header = jwt.get_unverified_header(token)
             kid = header.get("kid")
             return str(kid) if kid is not None else None
-        except Exception:
+        except jwt.InvalidTokenError:
             return None
 
     def close(self) -> None:
