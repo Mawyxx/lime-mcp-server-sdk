@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.2
+
+### Security
+
+- `jwks_uri` origin check is now an **exact** origin match (`urlparse` scheme +
+  netloc equality against the configured `base_url`) instead of a
+  `startswith` prefix check. Sibling origins that share the base as a string
+  prefix (`https://lime.pics.evil.tld`) and userinfo tricks
+  (`https://lime.pics@evil.tld`) are rejected as cross-origin. Non-http(s)
+  schemes and protocol-relative URLs fail closed; relative paths are joined
+  onto `base_url` exactly once.
+
 ## 1.0.1
 
 ### Fixed

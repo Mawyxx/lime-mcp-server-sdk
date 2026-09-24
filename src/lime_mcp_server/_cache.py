@@ -5,6 +5,7 @@ import threading
 import time
 from dataclasses import dataclass
 from typing import Any
+from urllib.parse import urlparse
 
 import httpx
 
@@ -137,18 +138,33 @@ class JwksCache:
             raise ValueError("metadata response must be JSON object")
         return _parse_oauth_metadata(body)
 
-    def _fetch_jwks(self, jwks_uri: str) -> list[dict[str, Any]]:
-        base = self._config.base_url
-        if jwks_uri.startswith(base):
-            path = jwks_uri[len(base) :]
-        elif jwks_uri.startswith("http"):
-            raise ValueError("cross-origin jwks_uri fetch not supported")
-        elif jwks_uri:
-            path = jwks_uri
-        else:
-            path = JWKS_PATH
+    def _resolve_jwks_url(self, jwks_uri: str) -> str:
+        """Resolve ``jwks_uri`` to a same-origin URL (exact-origin allowlist).
 
-        response = self._client.get(f"{base}{path}")
+        Full URLs must match the configured ``base_url`` origin exactly
+        (scheme + netloc). Prefix/sibling origins (``https://lime.pics.evil.tld``)
+        and userinfo tricks (``https://lime.pics@evil.tld``) are rejected.
+        Relative paths are joined onto ``base_url``.
+        """
+        base = self._config.base_url
+        parsed = urlparse(jwks_uri)
+        if parsed.scheme or parsed.netloc:
+            if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+                raise ValueError("jwks_uri must be an absolute http(s) URL")
+            base_parsed = urlparse(base)
+            if (parsed.scheme.lower(), parsed.netloc.lower()) != (
+                base_parsed.scheme.lower(),
+                base_parsed.netloc.lower(),
+            ):
+                raise ValueError("cross-origin jwks_uri fetch not supported")
+            origin = f"{parsed.scheme}://{parsed.netloc}"
+            return f"{origin}{parsed.path}" if parsed.path else f"{origin}{JWKS_PATH}"
+        if jwks_uri:
+            return f"{base}{jwks_uri}" if jwks_uri.startswith("/") else f"{base}/{jwks_uri}"
+        return f"{base}{JWKS_PATH}"
+
+    def _fetch_jwks(self, jwks_uri: str) -> list[dict[str, Any]]:
+        response = self._client.get(self._resolve_jwks_url(jwks_uri))
         if response.status_code != 200:
             raise RuntimeError(f"jwks HTTP {response.status_code}")
         try:

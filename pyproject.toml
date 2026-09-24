@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "lime-mcp-server-sdk"
-version = "1.0.1"
+version = "1.0.2"
 description = "Verify LIME MCP passport JWTs on your resource server: JWKS/RS256, domain pin, in-process cache, async verify. Zero JWKS boilerplate."
 readme = "README.md"
 license = "MIT"

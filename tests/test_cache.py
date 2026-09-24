@@ -120,6 +120,99 @@ def test_jwks_cache_cross_origin_jwks_uri() -> None:
 
 
 @respx.mock
+def test_jwks_cache_sibling_origin_jwks_uri_rejected() -> None:
+    base = "https://lime.pics"
+    respx.get(f"{base}{METADATA_PATH}").respond(
+        json={
+            "issuer": "https://lime.pics",
+            "jwks_uri": "https://lime.pics.evil.tld/jwks.json",
+        },
+    )
+    cache = JwksCache(LimeConfig(base_url=base))
+    with pytest.raises(ValueError, match="cross-origin"):
+        cache.refresh(force=True)
+    cache.close()
+
+
+@respx.mock
+def test_jwks_cache_userinfo_jwks_uri_rejected() -> None:
+    base = "https://lime.pics"
+    respx.get(f"{base}{METADATA_PATH}").respond(
+        json={
+            "issuer": "https://lime.pics",
+            "jwks_uri": "https://lime.pics@evil.tld/jwks.json",
+        },
+    )
+    cache = JwksCache(LimeConfig(base_url=base))
+    with pytest.raises(ValueError, match="cross-origin"):
+        cache.refresh(force=True)
+    cache.close()
+
+
+@respx.mock
+def test_jwks_cache_scheme_mismatch_jwks_uri_rejected() -> None:
+    base = "https://lime.pics"
+    respx.get(f"{base}{METADATA_PATH}").respond(
+        json={
+            "issuer": "https://lime.pics",
+            "jwks_uri": "http://lime.pics/jwks.json",
+        },
+    )
+    cache = JwksCache(LimeConfig(base_url=base))
+    with pytest.raises(ValueError, match="cross-origin"):
+        cache.refresh(force=True)
+    cache.close()
+
+
+@respx.mock
+def test_jwks_cache_non_http_jwks_uri_rejected() -> None:
+    base = "https://lime.pics"
+    respx.get(f"{base}{METADATA_PATH}").respond(
+        json={
+            "issuer": "https://lime.pics",
+            "jwks_uri": "ftp://lime.pics/jwks.json",
+        },
+    )
+    cache = JwksCache(LimeConfig(base_url=base))
+    with pytest.raises(ValueError, match="absolute http"):
+        cache.refresh(force=True)
+    cache.close()
+
+
+@respx.mock
+def test_jwks_cache_protocol_relative_jwks_uri_rejected() -> None:
+    base = "https://lime.pics"
+    respx.get(f"{base}{METADATA_PATH}").respond(
+        json={
+            "issuer": "https://lime.pics",
+            "jwks_uri": "//lime.pics/jwks.json",
+        },
+    )
+    cache = JwksCache(LimeConfig(base_url=base))
+    with pytest.raises(ValueError, match="absolute http"):
+        cache.refresh(force=True)
+    cache.close()
+
+
+@respx.mock
+def test_jwks_cache_relative_jwks_uri_without_leading_slash(rsa_keypair: tuple) -> None:
+    _, jwk = rsa_keypair
+    base = "https://lime.pics"
+    respx.get(f"{base}{METADATA_PATH}").respond(
+        json={
+            "issuer": "https://lime.pics",
+            "jwks_uri": "custom/jwks.json",
+        },
+    )
+    respx.get(f"{base}/custom/jwks.json").respond(json=_jwks_body(jwk))
+    cache = JwksCache(LimeConfig(base_url=base))
+    keys, issuer = cache.get_jwks("test-kid")
+    assert keys == [jwk]
+    assert issuer == "https://lime.pics"
+    cache.close()
+
+
+@respx.mock
 def test_jwks_cache_anti_ddos_skips_forced_refresh(rsa_keypair: tuple) -> None:
     _, jwk = rsa_keypair
     base = "https://lime.pics"
